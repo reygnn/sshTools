@@ -1,22 +1,27 @@
 package com.github.reygnn.core.ssh
 
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 
 /**
- * Reads at most [maxBytes] bytes as UTF-8, then stops. Bounds memory against
- * a runaway or hostile host that never stops writing.
+ * Reads at most [maxBytes] bytes, then stops, decoding the result as UTF-8.
+ * Bounds memory against a runaway or hostile host that never stops writing.
+ *
+ * The cap is counted in bytes (not characters): a multi-byte UTF-8 sequence
+ * straddling the [maxBytes] boundary may decode to the Unicode replacement
+ * character, which is acceptable for a defensive output cap.
  */
 fun InputStream.readCapped(maxBytes: Int): String {
-    val sb = StringBuilder()
-    val chunk = CharArray(8192)
+    val buffer = ByteArrayOutputStream()
+    val chunk = ByteArray(8192)
     var total = 0
-    bufferedReader().use { reader ->
+    use { input ->
         while (total < maxBytes) {
-            val read = reader.read(chunk, 0, minOf(chunk.size, maxBytes - total))
+            val read = input.read(chunk, 0, minOf(chunk.size, maxBytes - total))
             if (read < 0) break
-            sb.append(chunk, 0, read)
+            buffer.write(chunk, 0, read)
             total += read
         }
     }
-    return sb.toString()
+    return String(buffer.toByteArray(), Charsets.UTF_8)
 }

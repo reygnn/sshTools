@@ -2,6 +2,7 @@ package com.github.reygnn.lobber.ssh
 
 import com.github.reygnn.core.ssh.BcOpenSshKeyProvider
 import com.github.reygnn.core.ssh.TofuHostKeyVerifier
+import com.github.reygnn.core.ssh.readCapped
 import com.github.reygnn.core.ssh.shellQuote
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,11 +28,17 @@ class SshjBootstrap : SshBootstrap {
                         "printf '%s\\n' ${shellQuote(publicKeyLine)} >> ~/.ssh/authorized_keys && " +
                         "chmod 600 ~/.ssh/authorized_keys"
                 )
+                // Drain stdout *and* stderr before join() so a full channel
+                // buffer can never block the remote command. Success is silent;
+                // stderr carries the diagnostic on failure.
+                val out = cmd.inputStream.readCapped(MAX_OUTPUT_BYTES)
+                val err = cmd.errorStream.readCapped(MAX_OUTPUT_BYTES)
                 cmd.join(15, TimeUnit.SECONDS)
                 val exit = cmd.exitStatus ?: -1
                 if (exit != 0) {
-                    val err = cmd.errorStream.bufferedReader().readText()
-                    throw IOException("Pubkey-Push fehlgeschlagen (exit=$exit): $err")
+                    throw IOException(
+                        "Pubkey-Push fehlgeschlagen (exit=$exit): ${err.ifBlank { out }}"
+                    )
                 }
             }
         } finally {
@@ -49,5 +56,10 @@ class SshjBootstrap : SshBootstrap {
         } finally {
             ssh.disconnect()
         }
+    }
+
+    private companion object {
+        /** The bootstrap command is silent on success; cap its diagnostics generously. */
+        const val MAX_OUTPUT_BYTES = 64 * 1024
     }
 }
