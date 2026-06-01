@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Prodder</string>
+
+    <!-- TopAppBar titles -->
+    <string name="settings_title">Settings</string>
+    <string name="sessions_title">Prodder %1$s</string>
+
+    <!-- Common actions -->
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="saving">Saving…</string>
+    <string name="done">Done</string>
+    <string name="send">Send</string>
+
+    <!-- ViewModel-emitted errors -->
+    <string name="error_fill_all_fields">Fill in all fields</string>
+    <string name="error_unknown">Unknown error</string>
+    <string name="error_send_failed">Could not send input to the session</string>
+    <string name="error_need_server">Add at least one server.</string>
+    <string name="error_key_required">Paste the SSH key first.</string>
+    <string name="error_invalid_port">Port must be between 1 and 65535</string>
+
+    <!-- Server profiles -->
+    <string name="settings_servers">Servers</string>
+    <string name="settings_key">SSH key (shared across servers)</string>
+    <string name="field_server_name">Name (e.g. Tailscale, LAN)</string>
+    <string name="add_server">Add server</string>
+    <string name="edit_server">Edit</string>
+    <string name="delete_server">Delete</string>
+    <string name="save_server">Save server</string>
+    <string name="server_picker_label">Server</string>
+
+    <!-- Form fields -->
+    <string name="field_host">Host</string>
+    <string name="field_port">Port</string>
+    <string name="field_user">User</string>
+    <string name="field_private_key">id_ed25519 (PEM, full block)</string>
+
+    <!-- Sessions list -->
+    <string name="refresh_sessions">Reload session list</string>
+    <string name="open_settings">Open settings</string>
+    <string name="no_sessions_found">No screen sessions running on this host.</string>
+    <string name="status_attached">attached</string>
+    <string name="status_detached">detached</string>
+
+    <!-- Session detail -->
+    <string name="refresh_screen">Refresh screen</string>
+    <string name="auto_refresh">Auto</string>
+    <string name="empty_screen">(empty screen)</string>
+    <string name="input_label">Type input…</string>
+    <string name="key_enter">⏎ Enter</string>
+    <string name="key_ctrl_c">Ctrl-C</string>
+</resources>

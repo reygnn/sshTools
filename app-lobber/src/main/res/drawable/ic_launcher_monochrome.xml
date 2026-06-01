@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Monochrome layer for themed icons (Android 13+). The path itself can be
+  any solid colour — the system tints it with the user's wallpaper-derived
+  scheme.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M38,30 L50,30 L50,66 L78,66 L78,78 L38,78 Z" />
+</vector>

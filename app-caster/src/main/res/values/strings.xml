@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Caster</string>
+
+    <!-- TopAppBar titles -->
+    <string name="settings_title">Settings</string>
+    <string name="launcher_title">Caster %1$s</string>
+
+    <!-- Common actions -->
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="saving">Saving…</string>
+    <string name="done">Done</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+    <string name="restart">Restart</string>
+
+    <!-- Restart confirmation (session already running) -->
+    <string name="restart_title">Session already running</string>
+    <string name="restart_body">A Claude session for %1$s is already running. Restart it? The current session will be terminated first.</string>
+
+    <!-- ViewModel-emitted errors -->
+    <string name="error_fill_all_fields">Fill in all fields</string>
+    <string name="error_unknown">Unknown error</string>
+    <string name="error_stop_failed">Could not stop the session</string>
+    <string name="error_need_server">Add at least one server.</string>
+    <string name="error_key_required">Paste the SSH key first.</string>
+    <string name="error_invalid_port">Port must be between 1 and 65535.</string>
+
+    <!-- Server profiles -->
+    <string name="settings_servers">Servers</string>
+    <string name="settings_key">SSH key (shared across servers)</string>
+    <string name="field_server_name">Name (e.g. Tailscale, LAN)</string>
+    <string name="add_server">Add server</string>
+    <string name="edit_server">Edit</string>
+    <string name="delete_server">Delete</string>
+    <string name="save_server">Save server</string>
+    <string name="server_picker_label">Server</string>
+
+    <!-- Form fields -->
+    <string name="field_host">Host</string>
+    <string name="field_port">Port</string>
+    <string name="field_user">User</string>
+    <string name="field_working_dir">Working dir (with claude_*.sh)</string>
+    <string name="field_private_key">id_ed25519 (PEM, full block)</string>
+
+    <!-- Launcher screen -->
+    <string name="refresh_projects">Reload project list</string>
+    <string name="open_settings">Open settings</string>
+    <string name="no_projects_found">No claude_*.sh scripts found in the working dir.</string>
+    <string name="launching_project">Starting %1$s</string>
+    <string name="exit_unknown">unknown</string>
+    <string name="status_running">running</string>
+    <string name="status_stopped">stopped</string>
+</resources>

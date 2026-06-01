@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive icon foreground: 108x108dp viewport, with the visible safe zone
+  being the central 66dp circle. The "L" path stays inside ~21..87 on both
+  axes so it survives any launcher mask.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M38,30 L50,30 L50,66 L78,66 L78,78 L38,78 Z" />
+</vector>

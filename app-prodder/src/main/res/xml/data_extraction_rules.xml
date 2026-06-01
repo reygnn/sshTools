@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Hält die App-privaten Dateien aus BEIDEN Backup-Kanälen heraus: Cloud
+  Auto-Backup (Google Drive) und Device-to-Device-Transfer. `allowBackup`
+  alleine deckt nur den Cloud-Pfad; D2D braucht den expliziten Ausschluss.
+  Kritisch, weil in `filesDir` der unverschlüsselte (bzw. Keystore-gewrappte)
+  private SSH-Key sowie Host/User in DataStore liegen — die dürfen das Gerät
+  nie verlassen. Ein frisch wiederhergestelltes Gerät startet bewusst
+  unkonfiguriert; der Key wird neu eingegeben.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="." />
+        <exclude domain="sharedpref" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="." />
+        <exclude domain="sharedpref" path="." />
+    </device-transfer>
+</data-extraction-rules>

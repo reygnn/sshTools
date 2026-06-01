@@ -1,0 +1,255 @@
+package com.github.reygnn.caster.ui
+import com.github.reygnn.core.ui.UiText
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.github.reygnn.caster.R
+import com.github.reygnn.core.data.ServerProfile
+import com.github.reygnn.core.data.SettingsStore
+import com.github.reygnn.core.ssh.LogLine
+import com.github.reygnn.caster.ssh.ProjectEntry
+import com.github.reygnn.caster.ssh.SshClient
+import com.github.reygnn.caster.ssh.SshConfig
+import com.github.reygnn.caster.ssh.SshjClient
+import com.github.reygnn.caster.ssh.resolveConfig
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+/**
+ * Sortierreihenfolge der Projektliste: laufende Projekte zuoberst, innerhalb
+ * beider Gruppen alphabetisch (case-insensitive) nach Name. Der Host (`find`)
+ * liefert unsortiert, daher wird hier immer neu sortiert.
+ */
+private fun List<ProjectEntry>.sortedProjects(): List<ProjectEntry> =
+    sortedWith(compareByDescending<ProjectEntry> { it.running }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.name })
+
+data class LaunchUiState(
+    val configured: Boolean = true,
+    val projects: List<ProjectEntry> = emptyList(),
+    val loading: Boolean = false,
+    /**
+     * True sobald der erste `loadProjects()` zurückkam (egal ob Erfolg oder
+     * Fehler). Vorher zeigt die UI den Spinner statt eines Empty-States —
+     * sonst flackert beim Cold-Start kurz "Keine Projekte gefunden".
+     */
+    val hasLoadedOnce: Boolean = false,
+    /**
+     * Projektname solange ein Start-Stream läuft *oder* dessen Log noch
+     * sichtbar sein soll. Wird erst durch [dismissLaunch] auf `null` gesetzt —
+     * vorher bleibt Log + Exit-Code stehen, damit man ihn lesen kann.
+     */
+    val launching: String? = null,
+    val log: List<LogLine> = emptyList(),
+    val lastExitCode: Int? = null,
+    val error: UiText? = null,
+    /**
+     * Projektname, der gerade auf Bestätigung wartet, weil bereits eine
+     * Session läuft. Während dieser Zustand aktiv ist, zeigt die UI einen
+     * Warndialog ("Session läuft schon — neu starten?") statt sofort zu starten.
+     */
+    val pendingRestart: String? = null,
+    /** Projekt, dessen Stop-Vorgang gerade läuft (für Spinner/Disable im Item). */
+    val stopping: String? = null,
+) {
+    /** True sobald `LogLine.ExitCode` angekommen ist — Hinweis für die UI,
+     *  einen Dismiss-Button statt nur den laufenden Stream zu zeigen. */
+    val launchFinished: Boolean
+        get() = log.any { it is LogLine.ExitCode }
+}
+
+/**
+ * Server-Auswahl für den Picker im Launcher-Screen. [servers] ist die
+ * konfigurierte Liste, [selectedIndex] das aktive Profil. Der Picker bleibt
+ * unsichtbar, solange `servers.size <= 1`.
+ */
+data class ServerSelection(
+    val servers: List<ServerProfile> = emptyList(),
+    val selectedIndex: Int = 0,
+)
+
+class LaunchViewModel(
+    private val settings: SettingsStore,
+    // The default factory wires trust-on-first-use persistence: a fingerprint
+    // learned on first connect is pinned onto the matching profile(s).
+    private val createClient: (SshConfig) -> SshClient = { cfg ->
+        SshjClient(cfg) { fp -> settings.learnHostFingerprint(cfg.host, cfg.port, fp) }
+    },
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(LaunchUiState())
+    val state: StateFlow<LaunchUiState> = _state.asStateFlow()
+
+    val serverSelection: StateFlow<ServerSelection> =
+        combine(settings.servers, settings.selectedIndex) { servers, idx ->
+            ServerSelection(servers, idx.coerceIn(0, maxOf(0, servers.lastIndex)))
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, ServerSelection())
+
+    /** Switch the active server profile, then refresh the project list for it. */
+    fun selectServer(index: Int) {
+        viewModelScope.launch {
+            settings.setSelectedIndex(index)
+            loadProjects()
+        }
+    }
+
+    fun loadProjects() {
+        if (_state.value.launching != null) return
+        if (_state.value.loading) return
+        viewModelScope.launch {
+            val config = settings.resolveConfig()
+            if (config == null) {
+                _state.update { it.copy(configured = false) }
+                return@launch
+            }
+            _state.update { it.copy(configured = true, loading = true, error = null) }
+            runCatching { createClient(config).listProjects() }
+                .onSuccess { projects ->
+                    // Laufende Projekte zuoberst; innerhalb beider Gruppen
+                    // alphabetisch, weil der Host (find) unsortiert liefert.
+                    _state.update {
+                        it.copy(loading = false, hasLoadedOnce = true, projects = projects.sortedProjects())
+                    }
+                }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(
+                            loading = false,
+                            hasLoadedOnce = true,
+                            error = e.message?.let(UiText::Literal)
+                                ?: UiText.Resource(R.string.error_unknown),
+                        )
+                    }
+                }
+        }
+    }
+
+    /**
+     * Startversuch. Läuft schon eine Session, wird statt zu starten der
+     * Bestätigungsdialog ausgelöst (analog zu Lobbers Self-Install-Check).
+     */
+    fun launch(project: String) {
+        viewModelScope.launch {
+            val config = settings.resolveConfig() ?: run {
+                _state.update { it.copy(configured = false) }
+                return@launch
+            }
+            val alreadyRunning = runCatching {
+                createClient(config).isSessionRunning(project)
+            }.getOrDefault(false)
+            if (alreadyRunning) {
+                _state.update { it.copy(pendingRestart = project) }
+                return@launch
+            }
+            startLaunch(project, config)
+        }
+    }
+
+    /** User hat im "läuft schon"-Dialog bestätigt: alte Session beenden, neu starten. */
+    fun confirmRestart() {
+        val project = _state.value.pendingRestart ?: return
+        _state.update { it.copy(pendingRestart = null) }
+        viewModelScope.launch {
+            val config = settings.resolveConfig() ?: run {
+                _state.update { it.copy(configured = false) }
+                return@launch
+            }
+            runCatching { createClient(config).stopSession(project) }
+            startLaunch(project, config)
+        }
+    }
+
+    fun cancelRestart() {
+        _state.update { it.copy(pendingRestart = null) }
+    }
+
+    fun stop(project: String) {
+        viewModelScope.launch {
+            val config = settings.resolveConfig() ?: run {
+                _state.update { it.copy(configured = false) }
+                return@launch
+            }
+            _state.update { it.copy(stopping = project, error = null) }
+            val ok = runCatching { createClient(config).stopSession(project) }
+                .getOrDefault(false)
+            _state.update { current ->
+                current.copy(
+                    stopping = null,
+                    // Optimistisch im lokalen State spiegeln; ein folgender
+                    // loadProjects() bestätigt es über screen -ls.
+                    projects = if (ok) {
+                        current.projects
+                            .map {
+                                if (it.name == project) it.copy(running = false) else it
+                            }
+                            .sortedProjects()
+                    } else {
+                        current.projects
+                    },
+                    error = if (ok) null else UiText.Resource(R.string.error_stop_failed),
+                )
+            }
+        }
+    }
+
+    private suspend fun startLaunch(project: String, config: SshConfig) {
+        _state.update {
+            it.copy(launching = project, log = emptyList(), lastExitCode = null, error = null)
+        }
+        createClient(config)
+            .startStreaming(project)
+            .catch { e ->
+                _state.update {
+                    it.copy(
+                        launching = null,
+                        error = e.message?.let(UiText::Literal)
+                            ?: UiText.Resource(R.string.error_unknown),
+                    )
+                }
+            }
+            .collect { line ->
+                _state.update { current ->
+                    current.copy(
+                        log = current.log + line,
+                        lastExitCode = if (line is LogLine.ExitCode) line.code else current.lastExitCode,
+                    )
+                }
+            }
+    }
+
+    /**
+     * Liste leeren, sobald die App in den Hintergrund geht. Beim nächsten
+     * Foreground triggert ein `LifecycleResumeEffect` einen frischen
+     * `loadProjects()`. Während ein Start-Stream State trägt, wird nicht
+     * geleert.
+     */
+    fun clearProjects() {
+        if (_state.value.launching != null) return
+        _state.update { it.copy(projects = emptyList(), hasLoadedOnce = false) }
+    }
+
+    /**
+     * Schließt die Launch-Progress-View und kehrt zur Projektliste zurück.
+     * Triggert anschließend einen Refresh, damit der `running`-Status des
+     * gerade gestarteten/neu gestarteten Projekts aktualisiert wird —
+     * `LifecycleResumeEffect` feuert hier nicht, weil die Activity nie
+     * pausierte.
+     */
+    fun dismissLaunch() {
+        _state.update {
+            it.copy(launching = null, log = emptyList(), lastExitCode = null)
+        }
+        loadProjects()
+    }
+
+    fun clearError() {
+        _state.update { it.copy(error = null) }
+    }
+}

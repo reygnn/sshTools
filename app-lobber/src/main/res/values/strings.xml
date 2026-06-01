@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Lobber</string>
+
+    <!-- TopAppBar titles -->
+    <string name="settings_title">Settings</string>
+    <string name="installer_title">Lobber %1$s</string>
+    <string name="onboarding_title">First-time setup</string>
+
+    <!-- Common actions -->
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="done">Done</string>
+    <string name="install">Install</string>
+    <string name="save">Save</string>
+    <string name="saving">Saving…</string>
+
+    <!-- Self-install confirmation -->
+    <string name="self_install_title">Install Lobber over itself?</string>
+    <string name="self_install_body">%1$s looks like a Lobber build. Installing it will kill the running Lobber process mid-stream — you won\'t see the install log finish. Continue?</string>
+    <string name="self_install_continue">Continue</string>
+
+    <!-- ADB-not-ready gate -->
+    <string name="adb_not_ready_title">ADB not active</string>
+    <string name="adb_not_ready_body">Enable USB or wireless debugging in the device\'s developer options. Without ADB the build host can\'t push to this phone.</string>
+    <string name="adb_not_ready_open">Open developer options</string>
+
+    <!-- ViewModel-emitted errors -->
+    <string name="error_fill_all_fields">Fill in all fields</string>
+    <string name="error_unknown">Unknown error</string>
+    <string name="error_no_message">(no message)</string>
+    <string name="error_adb_fields">Enter the phone IP and the current port.</string>
+    <string name="error_not_configured">Configure and save the SSH connection first.</string>
+    <string name="error_need_server">Add at least one server.</string>
+    <string name="error_invalid_port">Port must be between 1 and 65535.</string>
+    <string name="error_key_required">Paste the SSH key first.</string>
+
+    <!-- Server profiles -->
+    <string name="settings_servers">Servers</string>
+    <string name="settings_key">SSH key (shared across servers)</string>
+    <string name="field_server_name">Name (e.g. Tailscale, LAN)</string>
+    <string name="add_server">Add server</string>
+    <string name="edit_server">Edit</string>
+    <string name="delete_server">Delete</string>
+    <string name="save_server">Save server</string>
+    <string name="server_picker_label">Server</string>
+
+    <!-- ADB reconnect (Tailscale) -->
+    <string name="adb_reconnect_title">ADB reconnect (Tailscale)</string>
+    <string name="adb_reconnect_hint">Runs adb connect + adb tcpip 5555 on the build host. Enter the current port from the phone\'s wireless-debugging screen — it changes after every reboot.</string>
+    <string name="field_adb_host">Phone ADB IP (Tailscale)</string>
+    <string name="field_adb_port">Current port (from phone screen)</string>
+    <string name="adb_reconnect">Reconnect ADB</string>
+    <string name="adb_reconnecting">Reconnecting…</string>
+    <string name="adb_clear_log">Clear log</string>
+
+    <!-- Form fields -->
+    <string name="field_host">Host</string>
+    <string name="field_port">Port</string>
+    <string name="field_user">User</string>
+    <string name="field_password_once">Password (one time)</string>
+    <string name="field_working_dir">Working dir (with install-aab.sh)</string>
+    <string name="field_private_key">id_ed25519 (PEM, full block)</string>
+    <string name="action_show">Show</string>
+    <string name="action_hide">Hide</string>
+
+    <!-- Installer screen -->
+    <string name="refresh_aabs">Reload AAB list</string>
+    <string name="open_settings">Open settings</string>
+    <string name="no_aabs_found">No .aab found in working dir.</string>
+    <string name="installing_aab">Installing %1$s</string>
+    <string name="exit_unknown">unknown</string>
+    <string name="adb_status_active">ADB debugging is active</string>
+    <string name="adb_status_inactive">ADB debugging is off — installs from the build host won\'t reach this phone</string>
+
+    <!-- Onboarding screen -->
+    <string name="onboarding_intro">Lobber generates a key on the phone and pushes the public key to the build host. You only need a username and password once for that.</string>
+    <string name="onboarding_start">Start auto-setup</string>
+    <string name="onboarding_running">Running…</string>
+    <string name="onboarding_have_key">I already have a key</string>
+
+    <!-- Onboarding step labels -->
+    <string name="step_generating">Generating Ed25519 key…</string>
+    <string name="step_pushing">Pushing public key to build host…</string>
+    <string name="step_verifying">Verifying public-key login…</string>
+    <string name="step_saving">Saving configuration…</string>
+    <string name="step_done">Done</string>
+</resources>
