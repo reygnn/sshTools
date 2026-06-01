@@ -9,16 +9,19 @@ package com.github.reygnn.core.testing
  *
  *     @get:Rule val rule = MainDispatcherRule()
  *
- * ## Advance time
- * Use `rule.dispatcher.scheduler.advanceUntilIdle()` (or `runCurrent()`) to
- * drive coroutines. Never call `delay()` with real time.
+ * ## Eager dispatcher
+ * The rule's default is an [kotlinx.coroutines.test.UnconfinedTestDispatcher],
+ * so coroutines launched on `Dispatchers.Main` start eagerly — no explicit
+ * `advanceUntilIdle()`/`runCurrent()` is needed before asserting. If a test
+ * genuinely needs virtual-time control, drive it via
+ * `rule.dispatcher.scheduler`. Never call `delay()` with real time.
  *
  * ## runTest
  * Wrap coroutine test bodies in `runTest(rule.dispatcher)` — this shares the
  * single dispatcher and keeps virtual time consistent.
  *
  * ## NEVER
- * - Create a second TestScope or StandardTestDispatcher in a test.
+ * - Create a second TestScope or TestDispatcher in a test.
  * - Call `kotlinx.coroutines.test.runTest {}` without passing `rule.dispatcher`.
  * - Use `Dispatchers.IO` or `Dispatchers.Default` directly in tests.
  */
