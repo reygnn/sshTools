@@ -3,6 +3,7 @@ package com.github.reygnn.prodder.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.reygnn.prodder.R
+import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
 import com.github.reygnn.prodder.ssh.ScreenSession
@@ -58,7 +59,7 @@ class SessionsViewModel(
     // viewModelScope/settings zugreifen darf; Tests injizieren ihren Mock.
     private val createClient: (SshConfig) -> SshClient = createClient ?: { cfg ->
         SshjClient(cfg) { fp ->
-            viewModelScope.launch { settings.learnHostFingerprint(cfg.host, cfg.port, cfg.username, fp) }
+            viewModelScope.launch { settings.learnHostFingerprint(cfg.host, cfg.port, fp) }
         }
     }
 

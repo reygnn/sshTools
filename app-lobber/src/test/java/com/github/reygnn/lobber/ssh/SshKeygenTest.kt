@@ -1,4 +1,5 @@
 package com.github.reygnn.lobber.ssh
+import com.github.reygnn.core.ssh.SshKeygen
 
 import com.hierynomus.sshj.userauth.keyprovider.OpenSSHKeyV1KeyFile
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters

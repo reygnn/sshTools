@@ -3,9 +3,10 @@ package com.github.reygnn.prodder.ui
 import app.cash.turbine.test
 import com.github.reygnn.core.testing.MainDispatcherRule
 import com.github.reygnn.prodder.R
+import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
+import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.prodder.ssh.SshClient
-import com.github.reygnn.prodder.ssh.SshConfig
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -31,14 +32,16 @@ class SessionViewModelTest {
 
     private val settings = mockk<SettingsStore>()
     private val client = mockk<SshClient>()
-    private val config = SshConfig(host = "buildserver", username = "ci", privateKeyPem = "PEM")
+    private val profile = ServerProfile(name = "Server 1", host = "buildserver", username = "ci")
     private val id = "100.demo"
 
     private lateinit var vm: SessionViewModel
 
     @Before
     fun setUp() {
-        every { settings.config } returns flowOf(config)
+        every { settings.servers } returns flowOf(listOf(profile))
+        every { settings.selectedIndex } returns flowOf(0)
+        coEvery { settings.readKeyPem() } returns "PEM"
         coEvery { client.capture(id) } returns "Choose [1/2] (default: 1):"
         coEvery { client.sendInput(any(), any()) } returns true
         vm = SessionViewModel(settings = settings, createClient = { client })

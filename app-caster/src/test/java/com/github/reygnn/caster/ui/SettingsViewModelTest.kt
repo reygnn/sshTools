@@ -1,4 +1,5 @@
 package com.github.reygnn.caster.ui
+import com.github.reygnn.core.ui.UiText
 
 import app.cash.turbine.test
 import com.github.reygnn.core.testing.MainDispatcherRule

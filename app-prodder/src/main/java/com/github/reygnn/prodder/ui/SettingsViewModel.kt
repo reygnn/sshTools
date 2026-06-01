@@ -3,6 +3,7 @@ package com.github.reygnn.prodder.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.reygnn.prodder.R
+import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.core.data.ConfigState
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore

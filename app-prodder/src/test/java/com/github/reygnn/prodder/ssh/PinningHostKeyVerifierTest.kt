@@ -7,6 +7,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.BeforeClass
 import org.junit.Test
+import com.github.reygnn.core.ssh.TofuHostKeyVerifier
+import com.github.reygnn.core.ssh.hostKeyFingerprint
+import com.github.reygnn.core.ssh.SshSecurity
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 
@@ -34,7 +37,7 @@ class PinningHostKeyVerifierTest {
     @Test
     fun `unpinned verifier learns the fingerprint and accepts (TOFU)`() {
         var learned: String? = null
-        val verifier = PinningHostKeyVerifier(expectedFingerprint = null) { learned = it }
+        val verifier = TofuHostKeyVerifier(expectedFingerprint = null) { learned = it }
 
         assertTrue(verifier.verify("host", 22, keyA.public))
         assertEquals(hostKeyFingerprint(keyA.public), learned)
@@ -42,7 +45,7 @@ class PinningHostKeyVerifierTest {
 
     @Test
     fun `pinned verifier accepts the matching key without re-learning`() {
-        val verifier = PinningHostKeyVerifier(expectedFingerprint = hostKeyFingerprint(keyA.public)) {
+        val verifier = TofuHostKeyVerifier(expectedFingerprint = hostKeyFingerprint(keyA.public)) {
             fail("a matching key must not be re-learned")
         }
 
@@ -52,7 +55,7 @@ class PinningHostKeyVerifierTest {
     @Test
     fun `pinned verifier rejects a different key and never learns it`() {
         var learned: String? = null
-        val verifier = PinningHostKeyVerifier(expectedFingerprint = hostKeyFingerprint(keyA.public)) {
+        val verifier = TofuHostKeyVerifier(expectedFingerprint = hostKeyFingerprint(keyA.public)) {
             learned = it
         }
 

@@ -4,10 +4,10 @@ import app.cash.turbine.test
 import com.github.reygnn.core.testing.MainDispatcherRule
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
+import com.github.reygnn.core.ssh.LogLine
+import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.lobber.ssh.AabEntry
-import com.github.reygnn.lobber.ssh.LogLine
 import com.github.reygnn.lobber.ssh.SshClient
-import com.github.reygnn.lobber.ssh.SshConfig
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -37,12 +37,6 @@ class InstallViewModelTest {
 
     private val settings = mockk<SettingsStore>()
     private val client = mockk<SshClient>()
-    private val config = SshConfig(
-        host = "buildserver",
-        username = "ci",
-        workingDir = "/srv/builds",
-        privateKeyPem = "PEM",
-    )
     private val profile = ServerProfile(
         name = "Server 1",
         host = "buildserver",
@@ -54,7 +48,7 @@ class InstallViewModelTest {
 
     @Before
     fun setUp() {
-        every { settings.config } returns flowOf(config)
+        coEvery { settings.readKeyPem() } returns "PEM"
         // serverSelection collects these eagerly at construction — must be stubbed.
         every { settings.servers } returns flowOf(listOf(profile))
         every { settings.selectedIndex } returns flowOf(0)

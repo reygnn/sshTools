@@ -5,6 +5,7 @@ import com.github.reygnn.core.testing.MainDispatcherRule
 import com.github.reygnn.prodder.R
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
+import com.github.reygnn.core.ui.UiText
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every

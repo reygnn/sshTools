@@ -4,9 +4,9 @@ import app.cash.turbine.test
 import com.github.reygnn.core.testing.MainDispatcherRule
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
+import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.prodder.ssh.ScreenSession
 import com.github.reygnn.prodder.ssh.SshClient
-import com.github.reygnn.prodder.ssh.SshConfig
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -33,14 +33,13 @@ class SessionsViewModelTest {
 
     private val settings = mockk<SettingsStore>()
     private val client = mockk<SshClient>()
-    private val config = SshConfig(host = "buildserver", username = "ci", privateKeyPem = "PEM")
     private val profile = ServerProfile(name = "Server 1", host = "buildserver", username = "ci")
 
     private lateinit var vm: SessionsViewModel
 
     @Before
     fun setUp() {
-        every { settings.config } returns flowOf(config)
+        coEvery { settings.readKeyPem() } returns "PEM"
         // serverSelection combine()t diese beiden Flows eager im Konstruktor.
         every { settings.servers } returns flowOf(listOf(profile))
         every { settings.selectedIndex } returns flowOf(0)
@@ -98,7 +97,7 @@ class SessionsViewModelTest {
     @Test
     fun `loadSessions sets configured false when no config`() =
         runTest(mainDispatcherRule.dispatcher) {
-            every { settings.config } returns flowOf(null)
+            coEvery { settings.readKeyPem() } returns null
             val vmNoConfig = SessionsViewModel(settings = settings, createClient = { client })
 
             vmNoConfig.loadSessions()

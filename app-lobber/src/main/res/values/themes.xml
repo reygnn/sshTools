@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Lobber" parent="android:Theme.Material.NoTitleBar">
-        <item name="android:windowBackground">@android:color/black</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">false</item>
+    <!--
+      The DeviceDefault parent maps to Material 3 on Android 12+ devices, the
+      only world this app runs in (min/target SDK 36). The splash background
+      uses the system's dynamic Material You neutral palette so the pre-Compose
+      window matches the wallpaper-derived surface the app renders in.
+    -->
+    <style name="Theme.Lobber" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar">
+        <item name="android:windowSplashScreenBackground">@android:color/system_neutral1_50</item>
     </style>
 </resources>

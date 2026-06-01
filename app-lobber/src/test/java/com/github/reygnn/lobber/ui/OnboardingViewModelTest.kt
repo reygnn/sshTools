@@ -4,9 +4,10 @@ import app.cash.turbine.test
 import com.github.reygnn.core.testing.MainDispatcherRule
 import com.github.reygnn.lobber.R
 import com.github.reygnn.core.data.SettingsStore
+import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.lobber.ssh.SshBootstrap
 import com.github.reygnn.lobber.ssh.SshConfig
-import com.github.reygnn.lobber.ssh.SshKeyPair
+import com.github.reygnn.core.ssh.SshKeyPair
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify

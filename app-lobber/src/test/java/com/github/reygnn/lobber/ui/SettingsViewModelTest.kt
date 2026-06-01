@@ -5,9 +5,9 @@ import com.github.reygnn.core.testing.MainDispatcherRule
 import com.github.reygnn.lobber.R
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
-import com.github.reygnn.lobber.ssh.LogLine
+import com.github.reygnn.core.ssh.LogLine
+import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.lobber.ssh.SshClient
-import com.github.reygnn.lobber.ssh.SshConfig
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -38,12 +38,6 @@ class SettingsViewModelTest {
 
     private val settings = mockk<SettingsStore>()
     private val client = mockk<SshClient>()
-    private val config = SshConfig(
-        host = "buildserver",
-        username = "ci",
-        workingDir = "/srv/builds",
-        privateKeyPem = "PEM",
-    )
     private val profile = ServerProfile(
         name = "Server 1",
         host = "buildserver",
@@ -55,7 +49,7 @@ class SettingsViewModelTest {
 
     @Before
     fun setUp() {
-        every { settings.config } returns flowOf(config)
+        every { settings.selectedIndex } returns flowOf(0)
         every { settings.isConfigured } returns flowOf(true)
         every { settings.servers } returns flowOf(listOf(profile))
         every { settings.adbHost } returns flowOf("100.64.0.2")

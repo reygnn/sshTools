@@ -3,6 +3,7 @@ package com.github.reygnn.prodder.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.reygnn.prodder.R
+import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.core.data.SettingsStore
 import com.github.reygnn.prodder.ssh.SshClient
 import com.github.reygnn.prodder.ssh.SshConfig
@@ -16,7 +17,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Carriage Return (0x03 = Ctrl-C) als sendbarer Steuerzeichen-Payload. */
+/** ETX (0x03 = Ctrl-C) als sendbarer Steuerzeichen-Payload. */
 private const val CTRL_C = "\u0003"
 
 data class SessionUiState(
@@ -52,7 +53,7 @@ class SessionViewModel(
     // viewModelScope/settings zugreifen darf; Tests injizieren ihren Mock.
     private val createClient: (SshConfig) -> SshClient = createClient ?: { cfg ->
         SshjClient(cfg) { fp ->
-            viewModelScope.launch { settings.learnHostFingerprint(cfg.host, cfg.port, cfg.username, fp) }
+            viewModelScope.launch { settings.learnHostFingerprint(cfg.host, cfg.port, fp) }
         }
     }
 

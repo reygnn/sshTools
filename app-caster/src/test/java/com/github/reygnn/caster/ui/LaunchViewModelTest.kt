@@ -4,10 +4,10 @@ import app.cash.turbine.test
 import com.github.reygnn.core.testing.MainDispatcherRule
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
-import com.github.reygnn.caster.ssh.LogLine
+import com.github.reygnn.core.ui.UiText
+import com.github.reygnn.core.ssh.LogLine
 import com.github.reygnn.caster.ssh.ProjectEntry
 import com.github.reygnn.caster.ssh.SshClient
-import com.github.reygnn.caster.ssh.SshConfig
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -36,12 +36,6 @@ class LaunchViewModelTest {
 
     private val settings = mockk<SettingsStore>()
     private val client = mockk<SshClient>()
-    private val config = SshConfig(
-        host = "buildserver",
-        username = "ci",
-        workingDir = "~/projekte",
-        privateKeyPem = "PEM",
-    )
 
     private val profile = ServerProfile(
         name = "Server 1",
@@ -54,7 +48,7 @@ class LaunchViewModelTest {
 
     @Before
     fun setUp() {
-        every { settings.config } returns flowOf(config)
+        coEvery { settings.readKeyPem() } returns "PEM"
         // serverSelection combine()t diese beiden Flows eager beim Konstruktor —
         // müssen also gestubbt sein, sonst wirft MockK beim VM-Bau.
         every { settings.servers } returns flowOf(listOf(profile))
@@ -320,7 +314,7 @@ class LaunchViewModelTest {
     @Test
     fun `launch sets configured false when no config`() =
         runTest(mainDispatcherRule.dispatcher) {
-            every { settings.config } returns flowOf(null)
+            coEvery { settings.readKeyPem() } returns null
             val vmNoConfig = LaunchViewModel(settings = settings, createClient = { client })
 
             vmNoConfig.launch("alpha")

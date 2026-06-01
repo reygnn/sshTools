@@ -1,4 +1,7 @@
 package com.github.reygnn.lobber.ssh
+import com.github.reygnn.core.ssh.BcOpenSshKeyProvider
+import com.github.reygnn.core.ssh.SshKeygen
+import com.github.reygnn.core.ssh.TofuHostKeyVerifier
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
