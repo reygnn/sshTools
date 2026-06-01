@@ -25,16 +25,22 @@ private val Context.dataStore by preferencesDataStore(name = "ssh-tools-settings
 const val DEFAULT_ADB_HOST = ""
 
 /**
- * Gemeinsamer Persistence-Layer für alle drei Apps (Lobber, Caster, Prodder).
+ * **Geteilter Code**, nicht geteilte Daten: dieselbe Klasse wird von allen drei
+ * Apps (Lobber, Caster, Prodder) verwendet, aber jede App hat ihre eigene
+ * Sandbox. DataStore-Name und Keystore-Alias sind zwar überall identisch,
+ * liegen aber je App getrennt — drei eigene DataStore-Dateien, drei eigene
+ * `id_ed25519`, drei UID-gebundene Keystore-Schlüssel. Jede App konfiguriert
+ * und onboardet daher unabhängig (siehe [KeyVault]).
  *
  * SSH-Konfiguration in `DataStore<Preferences>`, Private-Key als Datei in
  * `filesDir`. Der Key liegt **verschlüsselt at rest** ([KeyVault], AES-256-GCM
- * mit nicht-exportierbarem Android-Keystore-Schlüssel, Alias geteilt über
- * alle Apps) und owner-only auf der Platte.
+ * mit nicht-exportierbarem Android-Keystore-Schlüssel) und owner-only auf der
+ * Platte.
  *
  * Mehrere [ServerProfile]s werden als JSON-Liste unter [KEY_SERVERS] abgelegt,
- * das aktuell gewählte Profil über [KEY_SELECTED] (Index). Der Private-Key ist
- * **geteilt** — eine Datei und ein Keystore-Alias für alle drei Apps.
+ * das aktuell gewählte Profil über [KEY_SELECTED] (Index). Der Private-Key wird
+ * innerhalb *einer* App von allen Profilen gemeinsam genutzt (eine Datei,
+ * ein Keystore-Alias pro App).
  *
  * App-spezifische Nutzung:
  * - **Lobber/Caster**: [ServerProfile.workingDir] wird befüllt.

@@ -98,13 +98,17 @@ render it. Each SSH operation opens, authenticates, runs, tears down.
    Always drain stdout *and* stderr (`readCapped`) before `cmd.join()` so a
    full channel buffer can't deadlock.
 
-4. **One shared SSH keypair, encrypted at rest.** `filesDir/id_ed25519`
+4. **One SSH keypair per app, encrypted at rest.** `filesDir/id_ed25519`
    holds Base64 of an AES-256-GCM ciphertext from `KeyVault` (non-exportable
-   Android-Keystore key), mode `0600`. The key **and** the Keystore alias
-   (`ssh_tools_key_vault`) are shared across all three apps, so onboarding
-   once makes the key usable everywhere. A legacy plaintext PEM (`-----`
-   prefix) is read as-is and re-encrypted on the next save. Don't move the
-   key off `filesDir`.
+   Android-Keystore key), mode `0600`. The DataStore name and Keystore alias
+   (`ssh_tools_key_vault`) are the *same string* in all three apps, but this is
+   **shared code, not shared data**: each app has its own sandbox, so each holds
+   its own key/config and onboards independently (Keystore keys are UID-bound —
+   they can't cross app boundaries). Within one app, all server profiles share
+   the single key. A legacy plaintext PEM (`-----` prefix) is read as-is and
+   re-encrypted on the next save. Don't move the key off `filesDir`. (Real
+   cross-app sharing would need a signature-guarded ContentProvider or a
+   single-app architecture — deliberately not done.)
 
 5. **Host keys: trust-on-first-use, pinned per profile.**
    `TofuHostKeyVerifier` learns the `SHA256:…` fingerprint on first connect
