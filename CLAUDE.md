@@ -181,6 +181,16 @@ Each app ships English (`res/values/strings.xml`) + German
 resolved strings, so the resource is resolved at render time. New user-facing
 strings go in `strings.xml` from the start.
 
+**Code comments are English-only.** The whole codebase was translated to
+English (comments, KDoc, log/`require` messages); unlike the family default
+(`~/.claude/CLAUDE.md` keeps pre-existing German as-is), sshTools carries **no**
+German in source anymore — keep it that way and write new comments in English.
+A diff-aware linter enforces it: `./gradlew checkGermanComments` (or
+`tools/check-german-comments.sh`) flags German prose in comment lines added
+on/after the cutoff date (the "Stichtag", default `2026-06-01` — the project's
+initial commit, so effectively the whole tree; override with `CHECK_CUTOFF`).
+Ported from Kolibri_Launcher's Rule 13.
+
 ---
 
 ## Versioning
