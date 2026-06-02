@@ -100,8 +100,16 @@ render it. Each SSH operation opens, authenticates, runs, tears down.
    so tests inject a MockK client. Never reference `SshjClient` from a VM.
 
 3. **One SSH connection per operation.** `SshjClient` opens, authenticates,
-   runs, disconnects. No pool, no long-lived session — over a build LAN the
-   TCP setup is cheap and a half-broken pooled connection costs far more.
+   runs, disconnects. No pool, no long-lived session. This is a *robustness*
+   call, not a zero-cost one: the per-op handshake (KEX + Ed25519 pubkey auth
+   on device, plus the host's `sshd` auth/fork) genuinely costs — the TCP on a
+   build LAN is the cheap part — but a reused connection can be left half-dead
+   and then costs more to detect and recover than just reconnecting. The one
+   place the handshake cost compounds is Prodder's ~2s session poll
+   (`SessionViewModel.refresh`); it's bounded by foreground-only polling (R1)
+   and an in-flight guard (R2). If that ever needs trimming, raise/adapt the
+   interval first; a screen-scoped reused connection would be a *deliberate,
+   documented* exception to this rule, not a silent one.
    Always drain stdout *and* stderr (`readCapped`) before `cmd.join()` so a
    full channel buffer can't deadlock.
 
