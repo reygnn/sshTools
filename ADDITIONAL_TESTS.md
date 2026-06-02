@@ -128,7 +128,15 @@ Keystore bliebe dann nur für Tier 3.
 
 ---
 
-## Tier 3 — Instrumentiert (`androidTest`, das einzig gerätegebundene)
+## Tier 3 — Instrumentiert (`androidTest`, das einzig gerätegebundene) — ✅ implementiert
+
+> Umgesetzt: `core-data/.../KeyVaultInstrumentedTest.kt` (5 Tests) +
+> `core-ssh/.../BcOpenSshKeyProviderInstrumentedTest.kt` (3 Tests). Erstes
+> `androidTest`-SourceSet des Projekts — bewusst winzig, der dokumentierte
+> Ausnahmefall. **Auf Emulator API 36 ausgeführt, alle 8 grün.** Lauf:
+> `./gradlew :core-data:connectedDebugAndroidTest :core-ssh:connectedDebugAndroidTest`
+> (braucht ein angeschlossenes Gerät/Emulator). Deps (androidTest-only):
+> `androidx.test.ext:junit` + `androidx.test:runner`.
 
 Nur **zwei** Dinge brauchen echtes Android-Runtime (TEE/Conscrypt). Wäre das
 erste `androidTest`-SourceSet des Projekts — bewusst winzig, passend zur

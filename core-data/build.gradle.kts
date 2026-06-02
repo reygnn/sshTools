@@ -6,7 +6,10 @@ plugins {
 android {
     namespace  = "com.github.reygnn.core.data"
     compileSdk = 36
-    defaultConfig { minSdk = 36 }
+    defaultConfig {
+        minSdk = 36
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -26,4 +29,7 @@ dependencies {
     testImplementation(project(":core-testing"))
     // Robolectric: real Android runtime (DataStore, filesDir) for SettingsStore.
     testImplementation(libs.robolectric)
+    // Instrumented (Tier 3): KeyVault against the real hardware-backed Keystore.
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }
