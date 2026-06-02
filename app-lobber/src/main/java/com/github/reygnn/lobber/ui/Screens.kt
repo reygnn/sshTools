@@ -237,11 +237,13 @@ fun InstallerScreen(
 
     // Auf jedem ON_RESUME (App-Start, Rückkehr aus dem Hintergrund) AAB-Liste
     // refreshen, damit ein frisch gebauter AAB ohne manuellen Refresh-Tap
-    // sichtbar wird. loadAabs() guarded selbst gegen "läuft Install" und
-    // "läuft schon ein Refresh".
+    // sichtbar wird; beim Pausieren/Verlassen leeren (zeigt dann Spinner statt
+    // veralteter Einträge). Gleiches Muster wie Caster/Prodder — load und clear
+    // im selben Effekt, statt clear über einen separaten App-Observer.
+    // loadAabs()/clearAabs() guarden selbst gegen "läuft Install".
     LifecycleResumeEffect(Unit) {
         viewModel.loadAabs()
-        onPauseOrDispose { }
+        onPauseOrDispose { viewModel.clearAabs() }
     }
 
     Scaffold(topBar = {
