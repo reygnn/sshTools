@@ -25,9 +25,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Sortierreihenfolge der Projektliste: laufende Projekte zuoberst, innerhalb
- * beider Gruppen alphabetisch (case-insensitive) nach Name. Der Host (`find`)
- * liefert unsortiert, daher wird hier immer neu sortiert.
+ * Sort order of the project list: running projects on top, within both groups
+ * alphabetically (case-insensitive) by name. The host (`find`) returns them
+ * unsorted, so they are always re-sorted here.
  */
 private fun List<ProjectEntry>.sortedProjects(): List<ProjectEntry> =
     sortedWith(compareByDescending<ProjectEntry> { it.running }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.name })
@@ -37,31 +37,31 @@ data class LaunchUiState(
     val projects: List<ProjectEntry> = emptyList(),
     val loading: Boolean = false,
     /**
-     * True sobald der erste `loadProjects()` zurückkam (egal ob Erfolg oder
-     * Fehler). Vorher zeigt die UI den Spinner statt eines Empty-States —
-     * sonst flackert beim Cold-Start kurz "Keine Projekte gefunden".
+     * True as soon as the first `loadProjects()` returned (whether success or
+     * error). Before that the UI shows the spinner instead of an empty state —
+     * otherwise "No projects found" briefly flickers on cold start.
      */
     val hasLoadedOnce: Boolean = false,
     /**
-     * Projektname solange ein Start-Stream läuft *oder* dessen Log noch
-     * sichtbar sein soll. Wird erst durch [dismissLaunch] auf `null` gesetzt —
-     * vorher bleibt Log + Exit-Code stehen, damit man ihn lesen kann.
+     * Project name as long as a launch stream is running *or* its log should
+     * still be visible. Only set to `null` by [dismissLaunch] — before that the
+     * log + exit code remain in place so they can be read.
      */
     val launching: String? = null,
     val log: List<LogLine> = emptyList(),
     val lastExitCode: Int? = null,
     val error: UiText? = null,
     /**
-     * Projektname, der gerade auf Bestätigung wartet, weil bereits eine
-     * Session läuft. Während dieser Zustand aktiv ist, zeigt die UI einen
-     * Warndialog ("Session läuft schon — neu starten?") statt sofort zu starten.
+     * Project name currently awaiting confirmation because a session is already
+     * running. While this state is active, the UI shows a warning dialog
+     * ("Session already running — restart?") instead of starting right away.
      */
     val pendingRestart: String? = null,
-    /** Projekt, dessen Stop-Vorgang gerade läuft (für Spinner/Disable im Item). */
+    /** Project whose stop operation is currently running (for spinner/disable in the item). */
     val stopping: String? = null,
 ) {
-    /** True sobald `LogLine.ExitCode` angekommen ist — Hinweis für die UI,
-     *  einen Dismiss-Button statt nur den laufenden Stream zu zeigen. */
+    /** True as soon as `LogLine.ExitCode` has arrived — a hint for the UI to
+     *  show a dismiss button instead of only the running stream. */
     val launchFinished: Boolean
         get() = log.any { it is LogLine.ExitCode }
 }
@@ -101,8 +101,8 @@ class LaunchViewModel(
             _state.update { it.copy(configured = true, loading = true, error = null) }
             runCatching { createClient(config).listProjects() }
                 .onSuccess { projects ->
-                    // Laufende Projekte zuoberst; innerhalb beider Gruppen
-                    // alphabetisch, weil der Host (find) unsortiert liefert.
+                    // Running projects on top; within both groups
+                    // alphabetically, because the host (find) returns them unsorted.
                     _state.update {
                         it.copy(loading = false, hasLoadedOnce = true, projects = projects.sortedProjects())
                     }
@@ -120,8 +120,8 @@ class LaunchViewModel(
     }
 
     /**
-     * Startversuch. Läuft schon eine Session, wird statt zu starten der
-     * Bestätigungsdialog ausgelöst (analog zu Lobbers Self-Install-Check).
+     * Launch attempt. If a session is already running, the confirmation dialog
+     * is triggered instead of starting (analogous to Lobber's self-install check).
      */
     fun launch(project: String) {
         launchJob = viewModelScope.launch {
@@ -140,7 +140,7 @@ class LaunchViewModel(
         }
     }
 
-    /** User hat im "läuft schon"-Dialog bestätigt: alte Session beenden, neu starten. */
+    /** User confirmed in the "already running" dialog: stop the old session, restart. */
     fun confirmRestart() {
         val project = _state.value.pendingRestart ?: return
         _state.update { it.copy(pendingRestart = null) }
@@ -170,8 +170,8 @@ class LaunchViewModel(
             _state.update { current ->
                 current.copy(
                     stopping = null,
-                    // Optimistisch im lokalen State spiegeln; ein folgender
-                    // loadProjects() bestätigt es über screen -ls.
+                    // Mirror optimistically in the local state; a subsequent
+                    // loadProjects() confirms it via screen -ls.
                     projects = if (ok) {
                         current.projects
                             .map {
@@ -216,10 +216,9 @@ class LaunchViewModel(
     }
 
     /**
-     * Liste leeren, sobald die App in den Hintergrund geht. Beim nächsten
-     * Foreground triggert ein `LifecycleResumeEffect` einen frischen
-     * `loadProjects()`. Während ein Start-Stream State trägt, wird nicht
-     * geleert.
+     * Clear the list as soon as the app goes into the background. On the next
+     * foreground, a `LifecycleResumeEffect` triggers a fresh `loadProjects()`.
+     * While a launch stream carries state, nothing is cleared.
      */
     fun clearProjects() {
         if (_state.value.launching != null) return
@@ -227,11 +226,11 @@ class LaunchViewModel(
     }
 
     /**
-     * Schließt die Launch-Progress-View und kehrt zur Projektliste zurück.
-     * Triggert anschließend einen Refresh, damit der `running`-Status des
-     * gerade gestarteten/neu gestarteten Projekts aktualisiert wird —
-     * `LifecycleResumeEffect` feuert hier nicht, weil die Activity nie
-     * pausierte.
+     * Closes the launch progress view and returns to the project list.
+     * Then triggers a refresh so the `running` status of the
+     * just-started/restarted project is updated —
+     * `LifecycleResumeEffect` does not fire here, because the activity never
+     * paused.
      */
     /**
      * Cancel an in-progress launch. The streaming command has no read timeout, so

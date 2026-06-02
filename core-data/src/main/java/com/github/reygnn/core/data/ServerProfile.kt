@@ -15,11 +15,11 @@ import kotlinx.serialization.Serializable
  * means "not yet pinned" — the next connect learns and stores it. It is
  * deliberately per-profile (not global) so distinct hosts don't collide.
  *
- * [workingDir] ist für Lobber und Caster erforderlich (Pfad zum Build-
- * Verzeichnis auf dem Host). Prodder braucht ihn nicht — der Default `""`
- * signalisiert „nicht gesetzt"; Prodder-Profile setzen ihn nie.
- * `ignoreUnknownKeys = true` im Json-Decoder stellt sicher, dass ältere
- * JSON-Blobs ohne das Feld problemlos gelesen werden.
+ * [workingDir] is required for Lobber and Caster (path to the build
+ * directory on the host). Prodder does not need it — the default `""`
+ * signals "not set"; Prodder profiles never set it.
+ * `ignoreUnknownKeys = true` in the Json decoder ensures that older
+ * JSON blobs without the field are read without problems.
  */
 @Serializable
 data class ServerProfile(

@@ -1,10 +1,10 @@
 package com.github.reygnn.core.ssh
 
-/** Eine Zeile SSH-Kommando-Output, wie sie per Flow an die UI geliefert wird. */
+/** A single line of SSH command output, as delivered to the UI via Flow. */
 sealed interface LogLine {
     data class Stdout(val text: String) : LogLine
     data class Stderr(val text: String) : LogLine
-    /** [code] ist `null`, wenn sshj keinen Exit-Status liefert ("unbekannt"). */
+    /** [code] is `null` when sshj does not provide an exit status ("unknown"). */
     data class ExitCode(val code: Int?) : LogLine
 }
 

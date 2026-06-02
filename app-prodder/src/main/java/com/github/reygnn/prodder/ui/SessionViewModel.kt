@@ -17,31 +17,31 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** ETX (0x03 = Ctrl-C) als sendbarer Steuerzeichen-Payload. */
+/** ETX (0x03 = Ctrl-C) as a sendable control-character payload. */
 private const val CTRL_C = "\u0003"
 
 data class SessionUiState(
     val sessionId: String = "",
     val sessionName: String = "",
-    /** Letzter `hardcopy`-Snapshot des Schirms (VT-aufgelöster Klartext). */
+    /** Last `hardcopy` snapshot of the screen (VT-resolved plain text). */
     val screen: String = "",
-    /** True während ein capture läuft (für einen dezenten Lade-Indikator). */
+    /** True while a capture is running (for a subtle loading indicator). */
     val loading: Boolean = false,
-    /** Steuert, ob die UI periodisch `refresh()` aufruft. */
+    /** Controls whether the UI periodically calls `refresh()`. */
     val autoRefresh: Boolean = true,
-    /** True während ein `stuff` unterwegs ist. */
+    /** True while a `stuff` is in flight. */
     val sending: Boolean = false,
-    /** True sobald der erste capture zurückkam — vorher Spinner statt Leerschirm. */
+    /** True once the first capture came back — before that a spinner instead of an empty screen. */
     val hasLoadedOnce: Boolean = false,
     val error: UiText? = null,
 )
 
 /**
- * Liest und bespielt **eine** screen-Session. Bewusst ohne eigene
- * Poll-Schleife: das periodische Nachladen treibt die UI per
- * `LaunchedEffect` (an [SessionUiState.autoRefresh] gekoppelt), sodass dieser
- * ViewModel frei von langlebigen Coroutinen und damit unter
- * `runTest(rule.dispatcher)` ohne Endlosschleife testbar bleibt.
+ * Reads and feeds **one** screen session. Deliberately without its own
+ * poll loop: the periodic reload is driven by the UI via
+ * `LaunchedEffect` (coupled to [SessionUiState.autoRefresh]), so that this
+ * ViewModel stays free of long-lived coroutines and thus remains testable
+ * under `runTest(rule.dispatcher)` without an endless loop.
  */
 class SessionViewModel(
     private val settings: SettingsStore,
@@ -54,8 +54,8 @@ class SessionViewModel(
     val state: StateFlow<SessionUiState> = _state.asStateFlow()
 
     /**
-     * Bindet die View an Session [id]/[name] und holt sofort einen ersten
-     * Snapshot. Idempotent für dieselbe ID (verhindert Reset beim Recompose).
+     * Binds the view to session [id]/[name] and immediately fetches a first
+     * snapshot. Idempotent for the same ID (prevents a reset on recompose).
      */
     fun bind(id: String, name: String) {
         if (_state.value.sessionId == id) return
@@ -65,13 +65,13 @@ class SessionViewModel(
 
     fun toggleAutoRefresh() = _state.update { it.copy(autoRefresh = !it.autoRefresh) }
 
-    /** Einen Snapshot des aktuellen Schirms holen. */
+    /** Fetch a snapshot of the current screen. */
     fun refresh() {
         val id = _state.value.sessionId
         if (id.isEmpty()) return
-        // Kein zweiter Capture, solange einer läuft — Auto-Refresh-Tick (2 s),
-        // Refresh-Button und der sendRaw-Nachlauf können sonst überlappen und
-        // einen veralteten Snapshot zurückschreiben (last-writer-wins).
+        // No second capture while one is running — the auto-refresh tick (2 s),
+        // the refresh button and the sendRaw follow-up could otherwise overlap
+        // and write back a stale snapshot (last-writer-wins).
         if (_state.value.loading) return
         viewModelScope.launch {
             val config = settings.resolveConfig() ?: return@launch
@@ -94,23 +94,23 @@ class SessionViewModel(
         }
     }
 
-    /** Freitext senden; [appendEnter] hängt ein Enter (CR) an. */
+    /** Send free text; [appendEnter] appends an Enter (CR). */
     fun send(text: String, appendEnter: Boolean = true) =
         sendRaw(buildStuffPayload(text, appendEnter))
 
-    /** Nur Enter (CR) — nimmt z. B. den Default eines `[1/2]`-Prompts an. */
+    /** Just Enter (CR) — accepts e.g. the default of a `[1/2]` prompt. */
     fun sendEnter() = sendRaw(buildStuffPayload("", appendEnter = true))
 
-    /** Ctrl-C in die Session schicken (laufenden Vordergrundprozess unterbrechen). */
+    /** Send Ctrl-C into the session (interrupt the running foreground process). */
     fun sendCtrlC() = sendRaw(CTRL_C)
 
     private fun sendRaw(payload: String) {
         val id = _state.value.sessionId
         if (id.isEmpty()) return
-        // Kein zweites `stuff`, solange eines unterwegs ist — die QuickKeys-Chips
-        // und der Send-Button sind getrennte Widgets, schnelle Taps könnten sonst
-        // zwei `stuff`-Payloads verschränkt und out-of-order senden. Das UI-`enabled`
-        // allein reicht nicht (Race vor dem State-Flip). Siehe AUDIT V7.
+        // No second `stuff` while one is in flight — the QuickKeys chips
+        // and the send button are separate widgets, so fast taps could otherwise
+        // send two `stuff` payloads interleaved and out-of-order. The UI `enabled`
+        // alone is not enough (race before the state flip). See AUDIT V7.
         if (_state.value.sending) return
         viewModelScope.launch {
             val config = settings.resolveConfig() ?: return@launch
@@ -123,8 +123,8 @@ class SessionViewModel(
                     error = if (ok) it.error else UiText.Resource(R.string.error_send_failed),
                 )
             }
-            // Nach dem Senden den Schirm aktualisieren, damit der Effekt der
-            // Eingabe sichtbar wird — unabhängig vom Auto-Refresh-Intervall.
+            // After sending, refresh the screen so the effect of the
+            // input becomes visible — independent of the auto-refresh interval.
             if (ok) refresh()
         }
     }

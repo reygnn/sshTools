@@ -14,18 +14,18 @@ import java.security.PrivateKey
 import java.security.PublicKey
 
 /**
- * sshj [KeyProvider] für OpenSSH-Format Ed25519-Privates Keys, der sshj's
- * eigenen Parsing-Pfad komplett umgeht.
+ * sshj [KeyProvider] for OpenSSH-format Ed25519 private keys that bypasses
+ * sshj's own parsing path entirely.
  *
- * Hintergrund: sshj's Ed25519KeyFactory baut PKCS#8-Bytes mit hardcoded Preamble
- * und ruft `KeyFactory.getInstance("Ed25519")`. Auf Android landet das oft auf
- * Conscrypt — dem System-Provider, der die Preamble nicht akzeptiert. Auch ein
- * vorab registriertes BouncyCastle hilft nicht zuverlässig.
+ * Background: sshj's Ed25519KeyFactory builds PKCS#8 bytes with a hardcoded preamble
+ * and calls `KeyFactory.getInstance("Ed25519")`. On Android this often lands on
+ * Conscrypt — the system provider, which does not accept the preamble. Even a
+ * pre-registered BouncyCastle does not help reliably.
  *
- * Hier umgehen wir den Pfad: [KeyFactory.getInstance] wird mit einer konkreten
- * BouncyCastleProvider-Instanz aufgerufen (garantiert BC), und
- * [OpenSSHPrivateKeySpec] / [OpenSSHPublicKeySpec] lassen BC den Blob direkt
- * parsen — kein PKCS#8-Umweg, kein Preamble-Mismatch.
+ * Here we bypass that path: [KeyFactory.getInstance] is called with a concrete
+ * BouncyCastleProvider instance (guaranteed BC), and
+ * [OpenSSHPrivateKeySpec] / [OpenSSHPublicKeySpec] let BC parse the blob
+ * directly — no PKCS#8 detour, no preamble mismatch.
  */
 class BcOpenSshKeyProvider(privateKeyPem: String) : KeyProvider {
 
@@ -36,7 +36,7 @@ class BcOpenSshKeyProvider(privateKeyPem: String) : KeyProvider {
         val openSshBlob = decodePemBody(privateKeyPem)
         val bcParam = OpenSSHPrivateKeyUtil.parsePrivateKeyBlob(openSshBlob)
         require(bcParam is Ed25519PrivateKeyParameters) {
-            "Erwartet Ed25519, ist aber ${bcParam::class.simpleName}"
+            "Expected Ed25519, but is ${bcParam::class.simpleName}"
         }
         val keyFactory = KeyFactory.getInstance("Ed25519", BouncyCastleProvider())
         privateKey = keyFactory.generatePrivate(OpenSSHPrivateKeySpec(openSshBlob))

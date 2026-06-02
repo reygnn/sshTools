@@ -44,9 +44,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Verhindert Screenshots und blendet App-Switcher-Thumbnails aus —
-        // schützt das Private-Key-Eingabefeld und potenziell sensiblen
-        // Terminal-Output vor Schulterblick und Recents-Caching.
+        // Prevents screenshots and hides app-switcher thumbnails —
+        // protects the private-key input field and potentially sensitive
+        // terminal output from shoulder-surfing and recents caching.
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE,
@@ -76,8 +76,8 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("sessions") {
-                        // Beim Foreground frisch laden, beim Background Liste leeren
-                        // (zeigt dann Spinner statt veralteter Einträge).
+                        // Load fresh on foreground, clear the list on background
+                        // (then shows a spinner instead of stale entries).
                         LifecycleResumeEffect(Unit) {
                             sessionsVm.loadSessions()
                             onPauseOrDispose { sessionsVm.clearSessions() }
@@ -107,8 +107,8 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("settings") {
-                        // done() persistiert und feuert savedEvents — danach zur Sessions-Liste
-                        // (funktioniert aus beiden Quellen: Sessions und Onboarding-"hab Key").
+                        // done() persists and fires savedEvents — then to the sessions list
+                        // (works from both sources: Sessions and the onboarding "have key").
                         LaunchedEffect(Unit) {
                             settingsVm.savedEvents.collect {
                                 nav.navigate("sessions") { popUpTo("settings") { inclusive = true } }

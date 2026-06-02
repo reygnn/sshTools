@@ -51,12 +51,12 @@ class LaunchViewModelTest {
     @Before
     fun setUp() {
         coEvery { settings.readKeyPem() } returns "PEM"
-        // serverSelection combine()t diese beiden Flows eager beim Konstruktor —
-        // müssen also gestubbt sein, sonst wirft MockK beim VM-Bau.
+        // serverSelection combine()s these two flows eagerly in the constructor —
+        // so they must be stubbed, otherwise MockK throws during VM construction.
         every { settings.servers } returns flowOf(listOf(profile))
         every { settings.selectedIndex } returns flowOf(0)
-        // Default: keine laufende Session — launch() startet ohne Dialog.
-        // Tests, die den Restart-Dialog prüfen, überschreiben das.
+        // Default: no running session — launch() starts without a dialog.
+        // Tests that check the restart dialog override this.
         coEvery { client.isSessionRunning(any()) } returns false
         vm = LaunchViewModel(settings = settings, createClient = { client })
     }
@@ -75,8 +75,8 @@ class LaunchViewModelTest {
 
     @Test
     fun `loadProjects populates state`() = runTest(mainDispatcherRule.dispatcher) {
-        // Host (find) liefert unsortiert; die VM sortiert running-zuerst,
-        // innerhalb der Gruppen alphabetisch.
+        // Host (find) returns them unsorted; the VM sorts running-first,
+        // within the groups alphabetically.
         coEvery { client.listProjects() } returns listOf(
             ProjectEntry("alpha", running = false),
             ProjectEntry("beta", running = true),
@@ -104,8 +104,8 @@ class LaunchViewModelTest {
     @Test
     fun `loadProjects sorts running first then alphabetically within groups`() =
         runTest(mainDispatcherRule.dispatcher) {
-            // Host liefert unsortiert; running nach oben, beide Gruppen
-            // alphabetisch nach Name.
+            // Host returns them unsorted; running on top, both groups
+            // alphabetically by name.
             coEvery { client.listProjects() } returns listOf(
                 ProjectEntry("gamma", running = false),
                 ProjectEntry("delta", running = true),
@@ -171,7 +171,7 @@ class LaunchViewModelTest {
         runTest(mainDispatcherRule.dispatcher) {
             coEvery { client.isSessionRunning("alpha") } returns false
             every { client.startStreaming("alpha") } returns flow {
-                emit(LogLine.Stdout("screen-session claude_alpha gestartet"))
+                emit(LogLine.Stdout("screen session claude_alpha started"))
                 emit(LogLine.ExitCode(0))
             }
 
@@ -198,10 +198,10 @@ class LaunchViewModelTest {
 
                 val final = expectMostRecentItem()
                 assertEquals("beta", final.pendingRestart)
-                // Nicht gestartet, solange der Dialog offen ist.
+                // Not started while the dialog is open.
                 assertNull(final.launching)
             }
-            // startStreaming darf NICHT aufgerufen worden sein.
+            // startStreaming must NOT have been called.
             coVerify(exactly = 0) { client.startStreaming(any()) }
         }
 
@@ -214,8 +214,8 @@ class LaunchViewModelTest {
                 emit(LogLine.ExitCode(0))
             }
 
-            vm.launch("beta")            // öffnet den Dialog
-            vm.confirmRestart()          // bestätigt
+            vm.launch("beta")            // opens the dialog
+            vm.confirmRestart()          // confirms
 
             vm.state.test {
                 val final = expectMostRecentItem()
@@ -266,8 +266,8 @@ class LaunchViewModelTest {
     @Test
     fun `stop re-sorts the stopped project below still-running ones`() =
         runTest(mainDispatcherRule.dispatcher) {
-            // beta läuft und steht oben; alpha läuft ebenfalls. Nach dem Stop
-            // von beta soll es unter das weiterhin laufende alpha rutschen.
+            // beta is running and on top; alpha is running too. After stopping
+            // beta it should slide below the still-running alpha.
             coEvery { client.listProjects() } returns listOf(
                 ProjectEntry("beta", running = true),
                 ProjectEntry("alpha", running = true),
@@ -302,7 +302,7 @@ class LaunchViewModelTest {
         vm.state.test {
             val final = expectMostRecentItem()
             assertNull(final.stopping)
-            // running bleibt true, weil Stop fehlschlug
+            // running stays true because the stop failed
             assertTrue(final.projects.single { it.name == "beta" }.running)
             assertEquals(UiText.Resource(com.github.reygnn.caster.R.string.error_stop_failed), final.error)
         }
@@ -316,8 +316,8 @@ class LaunchViewModelTest {
                 emit(LogLine.Stdout("hi"))
                 emit(LogLine.ExitCode(0))
             }
-            // dismissLaunch triggert ein refresh, damit der `running`-Status
-            // des gerade gestarteten Projekts in der Liste reflektiert wird.
+            // dismissLaunch triggers a refresh so the `running` status
+            // of the just-started project is reflected in the list.
             val refreshed = listOf(ProjectEntry("alpha", running = true))
             coEvery { client.listProjects() } returns refreshed
 

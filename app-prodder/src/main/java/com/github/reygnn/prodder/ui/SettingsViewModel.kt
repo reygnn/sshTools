@@ -48,7 +48,7 @@ class SettingsViewModel(
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
 
     private val _savedEvents = Channel<Unit>(capacity = Channel.BUFFERED)
-    /** Einmalige Side-Effect-Events für Navigation; Compose collected per LaunchedEffect. */
+    /** One-shot side-effect events for navigation; Compose collects them via LaunchedEffect. */
     val savedEvents: Flow<Unit> = _savedEvents.receiveAsFlow()
 
     init {
@@ -65,7 +65,7 @@ class SettingsViewModel(
     // ── Shared key ────────────────────────────────────────────────
     fun onPrivateKey(v: String) = _state.update { it.copy(privateKeyPem = v) }
 
-    // ── Server-Editor ─────────────────────────────────────────────
+    // ── Server editor ─────────────────────────────────────────────
     fun addServer() = _state.update { it.copy(editing = ServerForm(), error = null) }
 
     fun editServer(index: Int) {

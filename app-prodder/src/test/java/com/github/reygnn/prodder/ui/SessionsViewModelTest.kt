@@ -40,7 +40,7 @@ class SessionsViewModelTest {
     @Before
     fun setUp() {
         coEvery { settings.readKeyPem() } returns "PEM"
-        // serverSelection combine()t diese beiden Flows eager im Konstruktor.
+        // serverSelection combine()s these two flows eagerly in the constructor.
         every { settings.servers } returns flowOf(listOf(profile))
         every { settings.selectedIndex } returns flowOf(0)
         vm = SessionsViewModel(settings = settings, createClient = { client })
@@ -69,7 +69,7 @@ class SessionsViewModelTest {
 
     @Test
     fun `loadSessions surfaces error message`() = runTest(mainDispatcherRule.dispatcher) {
-        coEvery { client.listSessions() } throws IOException("screen -ls fehlgeschlagen")
+        coEvery { client.listSessions() } throws IOException("screen -ls failed")
 
         vm.state.test {
             awaitItem()
@@ -78,7 +78,7 @@ class SessionsViewModelTest {
             val final = expectMostRecentItem()
             assertTrue(final.hasLoadedOnce)
             assertFalse(final.loading)
-            assertEquals(UiText.Literal("screen -ls fehlgeschlagen"), final.error)
+            assertEquals(UiText.Literal("screen -ls failed"), final.error)
         }
     }
 

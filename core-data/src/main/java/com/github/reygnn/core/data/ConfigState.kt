@@ -1,12 +1,12 @@
 package com.github.reygnn.core.data
 
 /**
- * Drei-Zustands-Repräsentation für „ist die App konfiguriert?".
+ * Three-state representation for "is the app configured?".
  *
- * Vorher trug das ein `Boolean?`, mit `null` als Loading-Sentinel — das
- * funktioniert, aber der `null`-Vertrag ist subtil und musste an jeder
- * Verzweigung kommentiert werden. Diese sealed interface macht den
- * Loading-Zustand explizit.
+ * Previously this was carried by a `Boolean?`, with `null` as the loading
+ * sentinel — that works, but the `null` contract is subtle and had to be
+ * commented at every branch. This sealed interface makes the
+ * loading state explicit.
  */
 sealed interface ConfigState {
     data object Loading : ConfigState

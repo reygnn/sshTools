@@ -54,7 +54,7 @@ import com.github.reygnn.core.ssh.LogLine
 import com.github.reygnn.caster.ssh.ProjectEntry
 
 /* ------------------------------------------------------------------ */
-/* Launcher: Projektliste mit Status + Start/Stop                      */
+/* Launcher: project list with status + start/stop                     */
 /* ------------------------------------------------------------------ */
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,8 +88,8 @@ fun LauncherScreen(
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            // Picker nur zeigen, wenn es mehr als ein Profil gibt und gerade
-            // kein Start-Stream läuft.
+            // Only show the picker when there is more than one profile and no
+            // launch stream is currently running.
             if (sel.servers.size > 1 && state.launching == null) {
                 ServerPicker(
                     serverNames = sel.servers.map { it.name },
@@ -259,7 +259,7 @@ private fun LaunchProgress(
 }
 
 /* ------------------------------------------------------------------ */
-/* Settings: Server-Profile + geteilter SSH-Key                        */
+/* Settings: server profiles + shared SSH key                          */
 /* ------------------------------------------------------------------ */
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -284,7 +284,7 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // ── Server-Profile ──
+            // ── Server profiles ──
             Text(
                 stringResource(R.string.settings_servers),
                 style = MaterialTheme.typography.titleMedium,
@@ -322,7 +322,7 @@ fun SettingsScreen(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-            // ── Geteilter SSH-Key (alle Profile) ──
+            // ── Shared SSH key (all profiles) ──
             Text(
                 stringResource(R.string.settings_key),
                 style = MaterialTheme.typography.titleMedium,

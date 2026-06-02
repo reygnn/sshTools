@@ -23,18 +23,18 @@ data class SessionsUiState(
     val sessions: List<ScreenSession> = emptyList(),
     val loading: Boolean = false,
     /**
-     * True sobald der erste `loadSessions()` zurückkam (egal ob Erfolg oder
-     * Fehler). Vorher zeigt die UI den Spinner statt eines Empty-States —
-     * sonst flackert beim Cold-Start kurz "keine Sessions".
+     * True once the first `loadSessions()` came back (whether success or
+     * error). Before that the UI shows the spinner instead of an empty state —
+     * otherwise "no sessions" flickers briefly on cold start.
      */
     val hasLoadedOnce: Boolean = false,
     val error: UiText? = null,
 )
 
 /**
- * Listet alle screen-Sessions des gewählten Build-Hosts und erlaubt den
- * Wechsel des Server-Profils. Das Lesen/Senden einer einzelnen Session
- * besorgt [SessionViewModel].
+ * Lists all screen sessions of the selected build host and allows
+ * switching the server profile. Reading/sending an individual session
+ * is handled by [SessionViewModel].
  */
 class SessionsViewModel(
     private val settings: SettingsStore,
@@ -84,8 +84,8 @@ class SessionsViewModel(
     }
 
     /**
-     * Liste leeren, sobald die App in den Hintergrund geht. Beim nächsten
-     * Foreground triggert ein `LifecycleResumeEffect` einen frischen
+     * Clear the list as soon as the app goes into the background. On the next
+     * foreground a `LifecycleResumeEffect` triggers a fresh
      * `loadSessions()`.
      */
     fun clearSessions() {

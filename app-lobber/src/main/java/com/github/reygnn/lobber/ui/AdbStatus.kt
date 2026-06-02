@@ -15,12 +15,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
 /**
- * ADB-Debugging-Status auf dem Phone — beides parallel auswertbar:
- *  - [usbDebug]: klassisches USB-Debugging via `adb_enabled`
+ * ADB debugging status on the phone — both evaluable in parallel:
+ *  - [usbDebug]: classic USB debugging via `adb_enabled`
  *  - [wifiDebug]: Wireless Debugging (Android 11+) via `adb_wifi_enabled`
  *
- * Für Lobber als „Build-Host pusht AAB ans Test-Phone" relevant: ohne ADB
- * geht der Push am anderen Ende nicht durch.
+ * Relevant for Lobber as "build host pushes AAB to the test phone": without ADB
+ * the push does not go through on the other end.
  */
 data class AdbStatus(val usbDebug: Boolean, val wifiDebug: Boolean) {
     val anyEnabled: Boolean get() = usbDebug || wifiDebug
@@ -29,10 +29,10 @@ data class AdbStatus(val usbDebug: Boolean, val wifiDebug: Boolean) {
 private const val SETTING_ADB_ENABLED = "adb_enabled"
 
 /**
- * `Settings.Global.ADB_WIFI_ENABLED` ist `@hide` (seit Android 11). Der
- * Key-Name selbst ist über mehrere AOSP-Versionen stabil; wir lesen ihn
- * direkt als String. Falls Google den Key irgendwann umbenennt, fällt der
- * Wifi-Status stillschweigend auf `false` zurück — keine Crash-Gefahr.
+ * `Settings.Global.ADB_WIFI_ENABLED` is `@hide` (since Android 11). The
+ * key name itself is stable across several AOSP versions; we read it
+ * directly as a String. If Google ever renames the key, the Wifi status
+ * silently falls back to `false` — no crash risk.
  */
 private const val SETTING_ADB_WIFI_ENABLED = "adb_wifi_enabled"
 

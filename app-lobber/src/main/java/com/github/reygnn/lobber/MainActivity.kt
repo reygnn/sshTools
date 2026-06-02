@@ -33,9 +33,9 @@ import kotlinx.coroutines.CoroutineScope
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Verhindert Screenshots und blendet App-Switcher-Thumbnails aus —
-        // schützt das Private-Key-Eingabefeld und potenziell sensiblen
-        // Log-Output vor Schulterblick und Recents-Caching.
+        // Prevents screenshots and hides app-switcher thumbnails —
+        // protects the private-key input field and potentially sensitive
+        // log output from shoulder surfing and recents caching.
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         val app = application as LobberApplication
         setContent {

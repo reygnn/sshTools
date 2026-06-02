@@ -38,9 +38,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Verhindert Screenshots und blendet App-Switcher-Thumbnails aus —
-        // schützt das Private-Key-Eingabefeld und potenziell sensiblen
-        // Log-Output vor Schulterblick und Recents-Caching.
+        // Prevents screenshots and hides app-switcher thumbnails —
+        // protects the private-key input field and potentially sensitive
+        // log output from shoulder-surfing and recents caching.
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE,
@@ -70,8 +70,8 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("launcher") {
-                        // Beim Foreground frisch laden, beim Background Liste leeren
-                        // (zeigt dann Spinner statt veralteter Einträge).
+                        // Reload fresh on foreground, clear the list on background
+                        // (then shows a spinner instead of stale entries).
                         LifecycleResumeEffect(Unit) {
                             launchVm.loadProjects()
                             onPauseOrDispose { launchVm.clearProjects() }
@@ -83,8 +83,8 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("settings") {
-                        // done() persistiert und feuert savedEvents — danach zum Launcher
-                        // (funktioniert aus beiden Quellen: Launcher und Onboarding-"hab Key").
+                        // done() persists and fires savedEvents — then on to the launcher
+                        // (works from both sources: launcher and onboarding "have key").
                         LaunchedEffect(Unit) {
                             settingsVm.savedEvents.collect {
                                 nav.navigate("launcher") { popUpTo("settings") { inclusive = true } }

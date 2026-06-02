@@ -10,9 +10,9 @@ import org.bouncycastle.util.encoders.Base64
 import java.security.SecureRandom
 
 data class SshKeyPair(
-    /** OpenSSH-PEM-Block, kompatibel zu sshj. */
+    /** OpenSSH PEM block, compatible with sshj. */
     val privateKeyPem: String,
-    /** Eine Zeile `ssh-ed25519 <base64> <comment>`, anhängbar an `authorized_keys`. */
+    /** A single line `ssh-ed25519 <base64> <comment>`, appendable to `authorized_keys`. */
     val publicKeyOpenSsh: String,
 )
 

@@ -11,8 +11,8 @@ class CasterApplication : Application() {
     lateinit var settingsStore: SettingsStore
         private set
 
-    /** App-lebenslanger Scope für Persistenz, die einen VM-Clear überleben muss
-     *  (z. B. das Pinnen eines frisch gelernten Host-Keys). */
+    /** App-lifetime scope for persistence that must survive a VM clear
+     *  (e.g. pinning a freshly learned host key). */
     val applicationScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {

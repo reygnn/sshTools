@@ -110,7 +110,7 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // ── Server-Profile ──
+            // ── Server profiles ──
             Text(
                 stringResource(R.string.settings_servers),
                 style = MaterialTheme.typography.titleMedium,
@@ -148,7 +148,7 @@ fun SettingsScreen(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-            // ── Geteilter SSH-Key (alle Profile) ──
+            // ── Shared SSH key (all profiles) ──
             Text(
                 stringResource(R.string.settings_key),
                 style = MaterialTheme.typography.titleMedium,
@@ -213,9 +213,9 @@ fun SettingsScreen(
 
 @Composable
 private fun AdbLogCard(log: List<LogLine>, onClear: () -> Unit) {
-    // Plain Column (kein LazyColumn): die SettingsScreen scrollt bereits via
-    // verticalScroll, und die ADB-Ausgabe ist nur eine Handvoll Zeilen — eine
-    // verschachtelte Lazy-Liste mit unbegrenzter Höhe würde hier crashen.
+    // Plain Column (no LazyColumn): the SettingsScreen already scrolls via
+    // verticalScroll, and the ADB output is just a handful of lines — a nested
+    // Lazy list with unbounded height would crash here.
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
             log.forEach { LogLineRow(it) }
@@ -239,12 +239,12 @@ fun InstallerScreen(
     val context = LocalContext.current
     var adbBlockedAab by remember { mutableStateOf<String?>(null) }
 
-    // Auf jedem ON_RESUME (App-Start, Rückkehr aus dem Hintergrund) AAB-Liste
-    // refreshen, damit ein frisch gebauter AAB ohne manuellen Refresh-Tap
-    // sichtbar wird; beim Pausieren/Verlassen leeren (zeigt dann Spinner statt
-    // veralteter Einträge). Gleiches Muster wie Caster/Prodder — load und clear
-    // im selben Effekt, statt clear über einen separaten App-Observer.
-    // loadAabs()/clearAabs() guarden selbst gegen "läuft Install".
+    // On every ON_RESUME (app start, return from background) refresh the AAB
+    // list, so a freshly built AAB becomes visible without a manual refresh tap;
+    // clear it on pause/leave (then shows a spinner instead of stale entries).
+    // Same pattern as Caster/Prodder — load and clear in the same effect,
+    // instead of clearing via a separate app observer.
+    // loadAabs()/clearAabs() guard against "install in progress" themselves.
     LifecycleResumeEffect(Unit) {
         viewModel.loadAabs()
         onPauseOrDispose { viewModel.clearAabs() }
@@ -269,8 +269,8 @@ fun InstallerScreen(
         )
     }) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            // Picker nur zeigen, wenn es mehr als ein Profil gibt und gerade
-            // kein Install läuft.
+            // Only show the picker when there is more than one profile and no
+            // install is currently running.
             if (sel.servers.size > 1 && s.installing == null) {
                 ServerPicker(
                     serverNames = sel.servers.map { it.name },
@@ -344,9 +344,9 @@ fun InstallerScreen(
     }
 }
 
-// Solange Entwickleroptionen nie freigeschaltet wurden (7× auf Build-Nummer),
-// existiert ACTION_APPLICATION_DEVELOPMENT_SETTINGS auf dem Gerät nicht. In dem
-// Fall auf die Geräteinfo-Seite ausweichen, wo der User den Schalter freischaltet.
+// As long as developer options were never unlocked (7× on the build number),
+// ACTION_APPLICATION_DEVELOPMENT_SETTINGS does not exist on the device. In that
+// case fall back to the device-info page, where the user unlocks the toggle.
 private fun openDeveloperOptions(context: Context) {
     runCatching { context.startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)) }
         .recoverCatching {
@@ -360,11 +360,11 @@ private val AabDateFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
 /**
- * ADB-Status-Punkt im Installer-Header. Bewusst **nicht** core-uis [StatusDot]:
- * der signalisiert neutralen on/off-Status (festes Grün/Grau), während hier der
- * Aus-Zustand eine *Warnung* ist — ohne ADB schlägt der Push am Phone fehl,
- * daher `error` statt Grau. Außerdem klickbar (springt in die
- * Entwickleroptionen), was [StatusDot] nicht leistet.
+ * ADB status dot in the installer header. Deliberately **not** core-ui's [StatusDot]:
+ * that one signals a neutral on/off status (fixed green/grey), whereas here the
+ * off state is a *warning* — without ADB the push fails on the phone, so
+ * `error` instead of grey. Also clickable (jumps into the developer options),
+ * which [StatusDot] does not offer.
  */
 @Composable
 private fun AdbStatusDot(onClick: () -> Unit) {

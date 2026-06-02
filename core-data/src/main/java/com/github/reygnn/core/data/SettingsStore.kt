@@ -20,39 +20,39 @@ import java.util.Base64
 private val Context.dataStore by preferencesDataStore(name = "ssh-tools-settings")
 
 /**
- * Gemeinsamer Default für das ADB-Reconnect-Feld (Lobber). Bewusst leer —
- * der Nutzer trägt die Phone-Adresse selbst ein. Caster und Prodder lesen
- * dieses Feld nicht; es ist harmlos in deren DataStore vorhanden.
+ * Shared default for the ADB-reconnect field (Lobber). Deliberately empty —
+ * the user enters the phone address themselves. Caster and Prodder do not read
+ * this field; it is harmlessly present in their DataStore.
  */
 const val DEFAULT_ADB_HOST = ""
 
 /**
- * **Geteilter Code**, nicht geteilte Daten: dieselbe Klasse wird von allen drei
- * Apps (Lobber, Caster, Prodder) verwendet, aber jede App hat ihre eigene
- * Sandbox. DataStore-Name und Keystore-Alias sind zwar überall identisch,
- * liegen aber je App getrennt — drei eigene DataStore-Dateien, drei eigene
- * `id_ed25519`, drei UID-gebundene Keystore-Schlüssel. Jede App konfiguriert
- * und onboardet daher unabhängig (siehe [KeyVault]).
+ * **Shared code**, not shared data: the same class is used by all three
+ * apps (Lobber, Caster, Prodder), but each app has its own
+ * sandbox. The DataStore name and Keystore alias are indeed identical everywhere,
+ * but live separately per app — three own DataStore files, three own
+ * `id_ed25519`, three UID-bound Keystore keys. Each app therefore configures
+ * and onboards independently (see [KeyVault]).
  *
- * SSH-Konfiguration in `DataStore<Preferences>`, Private-Key als Datei in
- * `filesDir`. Der Key liegt **verschlüsselt at rest** ([KeyVault], AES-256-GCM
- * mit nicht-exportierbarem Android-Keystore-Schlüssel) und owner-only auf der
- * Platte.
+ * SSH configuration in `DataStore<Preferences>`, private key as a file in
+ * `filesDir`. The key is stored **encrypted at rest** ([KeyVault], AES-256-GCM
+ * with a non-exportable Android Keystore key) and owner-only on
+ * disk.
  *
- * Mehrere [ServerProfile]s werden als JSON-Liste unter [KEY_SERVERS] abgelegt,
- * das aktuell gewählte Profil über [KEY_SELECTED] (Index). Der Private-Key wird
- * innerhalb *einer* App von allen Profilen gemeinsam genutzt (eine Datei,
- * ein Keystore-Alias pro App).
+ * Multiple [ServerProfile]s are stored as a JSON list under [KEY_SERVERS],
+ * the currently selected profile via [KEY_SELECTED] (index). The private key is
+ * shared by all profiles within *one* app (one file,
+ * one Keystore alias per app).
  *
- * App-spezifische Nutzung:
- * - **Lobber/Caster**: [ServerProfile.workingDir] wird befüllt.
- * - **Prodder**: [ServerProfile.workingDir] bleibt `""` (Default).
- * - **Lobber**: nutzt zusätzlich [adbHost] / [saveAdbHost].
- * - **Caster/Prodder**: ignorieren [adbHost].
+ * App-specific usage:
+ * - **Lobber/Caster**: [ServerProfile.workingDir] is filled in.
+ * - **Prodder**: [ServerProfile.workingDir] stays `""` (default).
+ * - **Lobber**: additionally uses [adbHost] / [saveAdbHost].
+ * - **Caster/Prodder**: ignore [adbHost].
  *
- * `toSshConfig()` ist bewusst nicht hier — `SshConfig` ist pro App
- * unterschiedlich (Prodder hat kein `workingDir`). Jede App konvertiert
- * [ServerProfile] selbst in ihre lokale `SshConfig`.
+ * `toSshConfig()` is deliberately not here — `SshConfig` differs per app
+ * (Prodder has no `workingDir`). Each app converts
+ * [ServerProfile] into its local `SshConfig` itself.
  */
 class SettingsStore(private val context: Context) {
 
@@ -146,15 +146,15 @@ class SettingsStore(private val context: Context) {
     suspend fun readKeyPem(): String? = withContext(Dispatchers.IO) { readDecryptedKey() }
 
     /**
-     * Schreibt die `ssh-ed25519 …`-Zeile als `id_ed25519.pub` in `filesDir`.
+     * Writes the `ssh-ed25519 …` line as `id_ed25519.pub` into `filesDir`.
      */
     suspend fun savePubKey(publicKeyOpenSsh: String) {
         writeOwnerOnly(pubKeyFile, publicKeyOpenSsh)
     }
 
     /**
-     * Tailscale-IP des Phones für den ADB-Reconnect (nur Lobber).
-     * Caster und Prodder lesen dieses Feld nicht; es ist harmlos persistiert.
+     * Tailscale IP of the phone for the ADB reconnect (Lobber only).
+     * Caster and Prodder do not read this field; it is harmlessly persisted.
      */
     val adbHost: Flow<String> = context.dataStore.data.map { prefs ->
         prefs[KEY_ADB_HOST] ?: DEFAULT_ADB_HOST
@@ -180,14 +180,14 @@ class SettingsStore(private val context: Context) {
     }
 
     /**
-     * Schreibt [content] owner-only. Die Rechte werden auf der **leeren** Datei
-     * gesetzt, *bevor* der Inhalt geschrieben wird — so existieren die Secret-
-     * Bytes nie mit Default-Rechten auf der Platte.
+     * Writes [content] owner-only. The permissions are set on the **empty** file
+     * *before* the content is written — so the secret
+     * bytes never exist with default permissions on disk.
      */
     private fun writeOwnerOnly(file: File, content: String) {
         if (!file.exists()) file.createNewFile()
         if (!restrictToOwner(file)) {
-            Log.w(TAG, "Konnte Rechte auf ${file.name} nicht vollständig einschränken")
+            Log.w(TAG, "Could not fully restrict permissions on ${file.name}")
         }
         file.writeText(content)
     }
@@ -199,11 +199,11 @@ class SettingsStore(private val context: Context) {
             file.setWritable(true, true)
 
     /**
-     * Liest die Profil-Liste. Fehlt [KEY_SERVERS] noch (frische Installation
-     * oder Altdaten aus der Einzel-Server-Ära), wird einmalig aus den
-     * Legacy-Flachschlüsseln (`host`/`port`/`user`/`dir`) ein Profil
-     * synthetisiert — read-time, ohne Rückschreiben, sodass keine Migration
-     * verloren geht.
+     * Reads the profile list. If [KEY_SERVERS] is still missing (fresh install
+     * or old data from the single-server era), a profile is synthesized once
+     * from the legacy flat keys (`host`/`port`/`user`/`dir`) — at read-time,
+     * without writing back, so that no migration is
+     * lost.
      */
     private fun readServers(prefs: Preferences): List<ServerProfile> {
         prefs[KEY_SERVERS]?.let { stored ->
@@ -216,7 +216,7 @@ class SettingsStore(private val context: Context) {
                     emptyList()
                 }
         }
-        // Legacy-Migration: Lobber/Caster hatten host/port/user/dir als Flachschlüssel.
+        // Legacy migration: Lobber/Caster had host/port/user/dir as flat keys.
         val host = prefs[KEY_HOST] ?: return emptyList()
         val user = prefs[KEY_USER] ?: return emptyList()
         return listOf(

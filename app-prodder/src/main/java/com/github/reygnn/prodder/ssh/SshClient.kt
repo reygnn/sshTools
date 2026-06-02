@@ -18,11 +18,11 @@ fun ServerProfile.toSshConfig(privateKeyPem: String) = SshConfig(
 )
 
 /**
- * Eine screen-Session, wie Prodder sie anzeigt und adressiert. App-lokaler
- * Domain-Typ (analog zu Casters `ProjectEntry`) — strukturell identisch zum
- * Parse-Ergebnis [com.github.reygnn.core.ssh.ScreenSessionInfo], aber bewusst
- * getrennt, damit die core-Primitive nicht in Prodders UI/VM leakt;
- * `parseSessions` mappt das Core-Ergebnis 1:1 hierher.
+ * A screen session as Prodder displays and addresses it. App-local
+ * domain type (analogous to Caster's `ProjectEntry`) — structurally identical to
+ * the parse result [com.github.reygnn.core.ssh.ScreenSessionInfo], but deliberately
+ * kept separate so the core primitive does not leak into Prodder's UI/VM;
+ * `parseSessions` maps the core result 1:1 to here.
  */
 data class ScreenSession(val id: String, val name: String, val attached: Boolean)
 

@@ -63,7 +63,7 @@ import com.github.reygnn.prodder.ssh.ScreenSession
 import kotlinx.coroutines.delay
 
 /* ------------------------------------------------------------------ */
-/* Sessions: alle screen-Sessions des gewählten Hosts                  */
+/* Sessions: all screen sessions of the selected host                  */
 /* ------------------------------------------------------------------ */
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -164,7 +164,7 @@ private fun SessionRow(session: ScreenSession, onClick: () -> Unit) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Session-Detail: hardcopy-Snapshot + Eingabe via stuff               */
+/* Session detail: hardcopy snapshot + input via stuff                 */
 /* ------------------------------------------------------------------ */
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -175,13 +175,13 @@ fun SessionScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    // Auto-Refresh wird hier in der UI getrieben (nicht im ViewModel), an
-    // state.autoRefresh gekoppelt: schaltet der User ihn aus, endet die
-    // Schleife; verlässt er den Screen, wird der LaunchedEffect gecancelt.
-    // repeatOnLifecycle hält das Polling an, sobald die App in den Hintergrund
-    // geht (ON_PAUSE), und nimmt es bei ON_RESUME wieder auf — ein nacktes
-    // LaunchedEffect liefe sonst im Hintergrund weiter und feuerte alle 2 s eine
-    // SSH-Verbindung gegen den Host.
+    // Auto-refresh is driven here in the UI (not in the ViewModel), coupled to
+    // state.autoRefresh: if the user turns it off, the loop ends; if he leaves
+    // the screen, the LaunchedEffect is cancelled.
+    // repeatOnLifecycle pauses the polling as soon as the app goes into the
+    // background (ON_PAUSE), and resumes it on ON_RESUME — a bare
+    // LaunchedEffect would otherwise keep running in the background and fire an
+    // SSH connection against the host every 2 s.
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(state.autoRefresh, state.sessionId) {
         if (!state.autoRefresh || state.sessionId.isEmpty()) return@LaunchedEffect
@@ -244,7 +244,7 @@ private fun ScreenSnapshot(text: String, loadingFirst: Boolean, modifier: Modifi
                 CircularProgressIndicator(Modifier.align(Alignment.Center))
             } else {
                 val vScroll = rememberScrollState()
-                // Beim Aktualisieren ans Ende scrollen — der Prompt steht unten.
+                // Scroll to the end on refresh — the prompt is at the bottom.
                 LaunchedEffect(text) { vScroll.scrollTo(vScroll.maxValue) }
                 Column(Modifier.fillMaxSize().verticalScroll(vScroll).padding(12.dp)) {
                     Text(
@@ -309,7 +309,7 @@ private fun InputRow(enabled: Boolean, onSend: (String) -> Unit) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Settings: Server-Profile + geteilter SSH-Key                        */
+/* Settings: server profiles + shared SSH key                          */
 /* ------------------------------------------------------------------ */
 
 @OptIn(ExperimentalMaterial3Api::class)

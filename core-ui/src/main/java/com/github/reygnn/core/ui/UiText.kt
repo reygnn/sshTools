@@ -6,9 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * UI-Text, der entweder als String-Ressource oder als bereits aufgelöster
- * String getragen wird. ViewModels emittieren [UiText] statt direkter Strings,
- * sodass Composables die Ressource erst beim Rendern auflösen.
+ * UI text carried either as a string resource or as an already-resolved
+ * string. ViewModels emit [UiText] instead of direct strings,
+ * so that Composables resolve the resource only at render time.
  */
 sealed interface UiText {
     data class Resource(@param:StringRes val id: Int, val args: List<Any> = emptyList()) : UiText
