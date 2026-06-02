@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -210,12 +211,17 @@ private fun LaunchProgress(
             color = MaterialTheme.colorScheme.surfaceVariant,
             modifier = Modifier.weight(1f).fillMaxWidth(),
         ) {
-            val vScroll = rememberScrollState()
-            // Follow the streamed launch log to the latest line — matches Lobber's
-            // InstallProgress and Prodder's ScreenSnapshot (AUDIT R3 deferred note).
-            LaunchedEffect(log.size) { vScroll.scrollTo(vScroll.maxValue) }
-            Column(Modifier.verticalScroll(vScroll).padding(12.dp)) {
-                log.forEach { LogLineRow(it) }
+            // LazyColumn (not a verticalScroll Column): a plain Column composes and
+            // lays out *every* line eagerly, so each streamed line re-lays-out the
+            // whole accumulated log (O(n²) over the stream). The lazy list virtualizes
+            // to the visible window — same shape as Lobber's InstallProgress.
+            val listState = rememberLazyListState()
+            // Follow the streamed launch log to the latest line.
+            LaunchedEffect(log.size) {
+                if (log.isNotEmpty()) listState.animateScrollToItem(log.lastIndex)
+            }
+            LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(12.dp)) {
+                items(log) { line -> LogLineRow(line) }
             }
         }
         Spacer(Modifier.size(12.dp))

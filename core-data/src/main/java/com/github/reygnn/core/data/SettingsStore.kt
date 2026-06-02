@@ -7,8 +7,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -128,8 +130,14 @@ class SettingsStore(private val context: Context) {
         writeOwnerOnly(keyFile, Base64.getEncoder().encodeToString(KeyVault.encrypt(privateKeyPem)))
     }
 
-    /** The shared private key PEM, or null if none is stored yet. */
-    suspend fun readKeyPem(): String? = readDecryptedKey()
+    /**
+     * The shared private key PEM, or null if none is stored yet. Runs on
+     * [Dispatchers.IO]: [readDecryptedKey] does a blocking file read plus an
+     * Android-Keystore (TEE) decrypt, and callers invoke this from
+     * `viewModelScope` (Main) once per SSH operation — most frequently Prodder's
+     * ~2s session poll. Keeping it off the main thread avoids that recurring jank.
+     */
+    suspend fun readKeyPem(): String? = withContext(Dispatchers.IO) { readDecryptedKey() }
 
     /**
      * Schreibt die `ssh-ed25519 …`-Zeile als `id_ed25519.pub` in `filesDir`.

@@ -16,12 +16,12 @@ import com.github.reygnn.core.ssh.LogLine
  */
 @Composable
 fun LogLineRow(line: LogLine) {
-    val unknown = stringResource(R.string.cu_exit_unknown)
     val (text, color) = when (line) {
         is LogLine.Stdout   -> line.text to Color.Unspecified
         is LogLine.Stderr   -> line.text to MaterialTheme.colorScheme.error
         is LogLine.ExitCode -> when (line.code) {
-            null -> "─── exit $unknown ───" to MaterialTheme.colorScheme.onSurfaceVariant
+            // Resolved only here, not for every (far more common) stdout/stderr row.
+            null -> "─── exit ${stringResource(R.string.cu_exit_unknown)} ───" to MaterialTheme.colorScheme.onSurfaceVariant
             0    -> "─── exit 0 ───" to MaterialTheme.colorScheme.primary
             else -> "─── exit ${line.code} ───" to MaterialTheme.colorScheme.error
         }
