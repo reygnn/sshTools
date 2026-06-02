@@ -12,7 +12,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
     kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21) } }
-    testOptions { unitTests.isReturnDefaultValues = true }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+        unitTests.isIncludeAndroidResources = true // Robolectric needs the merged manifest/resources
+    }
 }
 
 dependencies {
@@ -21,4 +24,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core) // StateFlow/combine for serverSelectionState
     testImplementation(libs.junit)
     testImplementation(project(":core-testing"))
+    // Robolectric: real Android runtime (DataStore, filesDir) for SettingsStore.
+    testImplementation(libs.robolectric)
 }

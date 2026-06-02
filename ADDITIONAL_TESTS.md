@@ -92,9 +92,17 @@ Damit beweisbar — und heute ungetestet:
 
 ---
 
-## Tier 2 — Robolectric für `SettingsStore` (JVM, mittlerer Hebel)
+## Tier 2 — Robolectric für `SettingsStore` (JVM, mittlerer Hebel) — ✅ implementiert
 
-`decodeKeyBlob` ist schon rein getestet (Decrypt injiziert). Ungetestet ist
+> Umgesetzt in `core-data/.../SettingsStoreTest.kt` (15 Tests, Robolectric
+> 4.16.1, SDK 36). `readServers` wurde dafür `internal` gemacht (Vorbild
+> `decodeKeyBlob`), damit die Migration mit einem handgebauten `preferencesOf(…)`
+> getestet werden kann, ohne den DataStore zu seeden. Gelernt: Robolectric
+> teilt `filesDir`/DataStore über Testmethoden hinweg → `@Before` setzt auf eine
+> leere Baseline zurück. Der Key-Crypto-Pfad (`saveKey`/`readKeyPem` via
+> `KeyVault`) bleibt bewusst ausgespart (braucht echten Keystore → Tier 3).
+
+`decodeKeyBlob` ist schon rein getestet (Decrypt injiziert). Ungetestet war
 der **DataStore-Round-Trip**:
 
 - Legacy-Migration (flache `host`/`port`/`user`/`dir`-Keys → `KEY_SERVERS`).

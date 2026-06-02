@@ -21,6 +21,7 @@ coroutines           = "1.11.0"
 turbine              = "1.2.1"
 sshd                 = "2.14.0"   # Apache MINA SSHD — in-process server for SSH integration tests
 eddsa                = "0.3.0"     # net.i2p Ed25519 — MINA's server-side ssh-ed25519 signature factory
+robolectric          = "4.16.1"    # Android runtime for JVM tests that touch DataStore/filesDir
 
 [libraries]
 androidx-compose-material-icons-core = { module = "androidx.compose.material:material-icons-core" }
@@ -50,6 +51,7 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx",   name = "kotlinx-c
 turbine                 = { group = "app.cash.turbine",         name = "turbine",                 version.ref = "turbine" }
 sshd-core               = { group = "org.apache.sshd",          name = "sshd-core",               version.ref = "sshd" }
 eddsa                   = { group = "net.i2p.crypto",           name = "eddsa",                   version.ref = "eddsa" }
+robolectric             = { group = "org.robolectric",          name = "robolectric",             version.ref = "robolectric" }
 
 [plugins]
 android-application  = { id = "com.android.application",                       version.ref = "agp" }

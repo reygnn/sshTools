@@ -205,7 +205,7 @@ class SettingsStore(private val context: Context) {
      * without writing back, so that no migration is
      * lost.
      */
-    private fun readServers(prefs: Preferences): List<ServerProfile> {
+    internal fun readServers(prefs: Preferences): List<ServerProfile> {
         prefs[KEY_SERVERS]?.let { stored ->
             return runCatching { json.decodeFromString<List<ServerProfile>>(stored) }
                 .getOrElse { e ->
