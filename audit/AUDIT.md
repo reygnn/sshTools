@@ -33,22 +33,31 @@ sich die kleinen Inkonsistenzen ein (Satzzeichen, Helfer mal da/mal nicht,
 Lifecycle-Verdrahtung). Es gibt **keine kritischen Bugs**; die Funde sind
 Wartbarkeit, Konsistenz und ein paar gemeinsame Robustheits-Verbesserungen.
 
-Priorisierte Übersicht:
+Priorisierte Übersicht — **alle Funde abgearbeitet** (Umsetzung 2026-06-02,
+Commits `c638f70` … `9dde824` auf `main`; Status je Fund siehe letzte Spalte):
 
-| # | Fund | Typ | Schwere | Hard-Rule-1-konform? |
-|---|------|-----|---------|----------------------|
-| 1 | `SettingsViewModel`-Server-CRUD 3× dupliziert | Duplikat | **Hoch** | ja (Ziel: core-data, nicht core-ssh) |
-| 2 | SSH-Fehlertexte hartkodiert Deutsch, umgehen `UiText.Resource`/Lokalisierung | Drift | **Mittel** | ja |
-| 3 | Lifecycle-Verdrahtung Lobber ≠ Caster/Prodder | Drift | Mittel | ja |
-| 4 | `ServerSelection` + `serverSelection`/`selectServer` 3× dupliziert | Duplikat | Mittel | ja |
-| 5 | Streaming-Pfade ohne Byte-Cap + unbegrenztes Log-Wachstum im VM-State | Robustheit | Mittel | ja |
-| 6 | `stringRes()`-Helfer in Caster+Prodder dupliziert, Lobber abweichend | Drift | Niedrig | ja |
-| 7 | `error_invalid_port` ohne Punkt in Prodder (EN+DE) | Drift | Niedrig | ja |
-| 8 | `testImplementation(libs.turbine)` redundant in allen Apps | Hygiene | Niedrig | ja |
-| 9 | `resolveConfig()` kosmetisch uneinheitlich (Doc/Var) | Drift | Niedrig | **bewusst dupliziert** |
-| 10 | Prodder `ScreenSession` ≙ core `ScreenSessionInfo` (1:1-Mapping) | Duplikat | Niedrig | ja |
-| 11 | Lobber `AdbStatusDot` statt core-ui `StatusDot` | Drift | Niedrig | wahrscheinlich bewusst |
-| 12 | Doc-/Kommentar-Drift (`applicationScope`, FLAG_SECURE) | Kosmetik | Niedrig | ja |
+| # | Fund | Typ | Schwere | Hard-Rule-1-konform? | Status |
+|---|------|-----|---------|----------------------|--------|
+| 1 | `SettingsViewModel`-Server-CRUD 3× dupliziert | Duplikat | **Hoch** | ja (Ziel: core-data, nicht core-ssh) | ✅ `05d2808` |
+| 2 | SSH-Fehlertexte hartkodiert Deutsch, umgehen `UiText.Resource`/Lokalisierung | Drift | **Mittel** | ja | ✅ `10a4f7d` |
+| 3 | Lifecycle-Verdrahtung Lobber ≠ Caster/Prodder | Drift | Mittel | ja | ✅ `5fa38a9` |
+| 4 | `ServerSelection` + `serverSelection`/`selectServer` 3× dupliziert | Duplikat | Mittel | ja | ✅ `8a54d7e` |
+| 5 | Streaming-Pfade ohne Byte-Cap + unbegrenztes Log-Wachstum im VM-State | Robustheit | Mittel | ja | ✅ `10a4f7d` |
+| 6 | `stringRes()`-Helfer in Caster+Prodder dupliziert, Lobber abweichend | Drift | Niedrig | ja | ✅ `9dde824` |
+| 7 | `error_invalid_port` ohne Punkt in Prodder (EN+DE) | Drift | Niedrig | ja | ✅ `c638f70` |
+| 8 | `testImplementation(libs.turbine)` redundant in allen Apps | Hygiene | Niedrig | ja | ✅ `c638f70` |
+| 9 | `resolveConfig()` kosmetisch uneinheitlich (Doc/Var) | Drift | Niedrig | **bewusst dupliziert** | ⏸ bewusst belassen (Hard Rule 1) |
+| 10 | Prodder `ScreenSession` ≙ core `ScreenSessionInfo` (1:1-Mapping) | Duplikat | Niedrig | ja | ✅ dokumentiert `9dde824` |
+| 11 | Lobber `AdbStatusDot` statt core-ui `StatusDot` | Drift | Niedrig | wahrscheinlich bewusst | ✅ dokumentiert `9dde824` |
+| 12 | Doc-/Kommentar-Drift (`applicationScope`, FLAG_SECURE) | Kosmetik | Niedrig | ja | ✅ `c638f70` |
+
+Bewusst **nicht** geändert: #9 (`resolveConfig()` bleibt pro App — Hard Rule 1)
+und die gemeinsamen Label-Strings aus Abschnitt B (`back`/`done`/`saving`/
+`settings_*` — benigne Duplizierung, behält je App die Freiheit zum Umbenennen).
+
+> Die folgenden Abschnitte sind der **ursprüngliche Analyse-Snapshot**
+> (Beschreibung + Empfehlung je Fund). Der Umsetzungsstand steht in der Tabelle
+> oben; die `file:line`-Verweise zeigen auf den Stand *vor* der Umsetzung.
 
 ---
 
@@ -283,12 +292,23 @@ explizite Turbine-Zeile transitiv schon vorhanden. **Empfehlung:** die
 
 ---
 
-## Empfohlene Reihenfolge
+## Umsetzungs-Chronik (2026-06-02)
 
-1. **#7, #8, #12** — Trivial-Fixes (Punkt, redundante Dep, Doc) — sofort, risikolos.
-2. **#2** — Fehlertexte typisieren/lokalisieren — mittlerer Aufwand, beseitigt einen
-   echten UX-/Konventions-Bruch.
-3. **#5** — Log-Cap zentral — kleiner Aufwand, klarer Robustheitsgewinn.
-4. **#3** — Lifecycle in Lobber angleichen (nach Verifikation des Reload-Gaps).
-5. **#1 + #4** — die große Konsolidierung (`ServerListEditor` + `ServerSelection`
-   nach core-data) — höchster Wartbarkeitsgewinn, größter Aufwand; eigener Branch.
+In der empfohlenen Reihenfolge abgearbeitet, jeder Schritt auf eigenem Branch,
+mit grünen Unit-Tests + `lintDebug`, fast-forward nach `main`:
+
+1. **#7, #8, #12** — Trivial-Fixes (Punkt, redundante Dep, Doc) → `c638f70`.
+2. **#2 + #5** — typisierte `RemoteCommandException` + zentrales `Throwable.toUiText()`
+   (core-ui), Log-Cap `plusCapped`/`DEFAULT_MAX_LOG_LINES` (core-ssh) → `10a4f7d`.
+3. **#3** — Lobber-Lifecycle auf das `LifecycleResumeEffect`-Muster konvergiert
+   (Reload-Gap verifiziert: existierte nicht) → `5fa38a9`.
+4. **#4** — `ServerSelection` + `serverSelectionState(scope)` nach core-data → `8a54d7e`.
+5. **#1** — `ServerForm` + `validate()` + `toForm()`/`upsert()` nach core-data;
+   die VMs delegieren, Verhalten/Tests unverändert → `05d2808`.
+6. **#6, #10, #11** — `stringRes`-Wrapper entfernt; `ScreenSession`/`AdbStatusDot`
+   als bewusste Abweichungen dokumentiert → `9dde824`.
+
+Abweichungen vom ursprünglichen Plan: #2 und #5 wurden zusammen umgesetzt (gemeinsame
+VM-Dateien); statt eines `ServerListEditor`-Vollobjekts wurde die *Logik* (Validierung,
+Pin-Erhalt, Upsert) extrahiert und die triviale State-Plumbing bewusst pro VM belassen
+— gleiche Drift-Reduktion ohne Screen-/Test-Churn.
