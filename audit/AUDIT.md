@@ -96,6 +96,15 @@ Gleiche `LogLine`-Daten, zwei Darstellungen:
 - Test-Name: Prodder `PinningHostKeyVerifierTest` (alter Name) vs.
   Caster/Lobber `TofuHostKeyVerifierTest`.
 
+### A8. Fehlende DE-Lokalisierung (Drift gegenüber Spec)
+`CLAUDE.md` (§Localization) schreibt vor: jede App liefert Englisch
+(`res/values/strings.xml`) **plus** Deutsch (`res/values-de/strings.xml`).
+Tatsächlich existiert in **keiner** der drei Apps ein `values-de/` — alle UI-
+Strings sind nur Englisch vorhanden. Das ist Drift gegenüber der eigenen Regel,
+nicht zwischen den Apps (alle drei sind gleich „nur Englisch"). Erst beim
+Nachziehen relevant, sobald deutschsprachige UI gewünscht ist; hängt eng an B1
+(geteilte Strings/UI nach `core-ui`).
+
 ---
 
 ## B. Konsolidierung nach `core-*` (Kern des Ziels)

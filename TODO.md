@@ -86,6 +86,13 @@ Legende: 🟢 risikolos · 🟡 mittel · 🔴 größer (eigener Branch).
   Scroll-Verhalten). Lobber (Install/ADB) und Caster (Launch) nutzen sie.
   *Akzeptanz:* `LogLine`-Rendering existiert einmal.
 
+- [ ] **A8 · DE-Lokalisierung nachziehen** 🟡
+  `CLAUDE.md` verlangt EN + DE pro App, aber **keine** App hat `values-de/`.
+  Pro App ein `res/values-de/strings.xml` ergänzen; idealerweise zusammen mit
+  B1 die geteilten Strings nach `core-ui` ziehen, damit EN/DE nur einmal
+  gepflegt werden. *Akzeptanz:* jede App rendert auf einem DE-Gerät deutsch;
+  keine fehlenden Übersetzungen.
+
 - [x] **A5 · Fingerprint-Preserve-Logik vereinheitlichen** 🟢 (erledigt 2026-06-02)
   Eine Helper-Funktion (z. B. in `core-data` an `ServerProfile`): „Pin behalten,
   solange host+port unverändert". Alle drei `SettingsViewModel.saveServer()`
