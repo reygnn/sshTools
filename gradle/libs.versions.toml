@@ -19,6 +19,8 @@ junit                = "4.13.2"
 mockk                = "1.14.9"
 coroutines           = "1.11.0"
 turbine              = "1.2.1"
+sshd                 = "2.14.0"   # Apache MINA SSHD — in-process server for SSH integration tests
+eddsa                = "0.3.0"     # net.i2p Ed25519 — MINA's server-side ssh-ed25519 signature factory
 
 [libraries]
 androidx-compose-material-icons-core = { module = "androidx.compose.material:material-icons-core" }
@@ -46,6 +48,8 @@ junit                   = { group = "junit",                   name = "junit",  
 mockk                   = { group = "io.mockk",                name = "mockk",                   version.ref = "mockk" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx",   name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 turbine                 = { group = "app.cash.turbine",         name = "turbine",                 version.ref = "turbine" }
+sshd-core               = { group = "org.apache.sshd",          name = "sshd-core",               version.ref = "sshd" }
+eddsa                   = { group = "net.i2p.crypto",           name = "eddsa",                   version.ref = "eddsa" }
 
 [plugins]
 android-application  = { id = "com.android.application",                       version.ref = "agp" }

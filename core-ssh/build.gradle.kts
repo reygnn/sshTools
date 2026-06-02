@@ -31,4 +31,9 @@ dependencies {
     runtimeOnly(libs.slf4j.nop)
     testImplementation(libs.junit)
     testImplementation(project(":core-testing"))
+    // In-process SSH server for the integration tests (real handshake/auth/exec).
+    testImplementation(libs.sshd.core)
+    testImplementation(libs.eddsa) // MINA's server-side ssh-ed25519 signature factory
+
+    testRuntimeOnly(libs.slf4j.nop) // silence MINA's slf4j "no binding" warning in tests
 }
