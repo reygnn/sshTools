@@ -857,3 +857,73 @@ Robustheits-Fix.
 5. **V6/V7/V10** — billige Guards/Exit-Checks (`sending`-Guard, `capture`-Exit, Onboarding-Guard).
 6. **V5** — Streaming-Teardown bei Cancellation (am Gerät verifizieren).
 7. **V8/V9/V11** — Logging statt Stillschweigen, fail-safe, Test-Helfer.
+
+---
+
+# Runde 5 — Resilienz / Abbruch-UX (2026-06-02)
+
+**Umfang:** bewusst neue Achse — wie verhalten sich die Apps, wenn eine SSH-
+Operation *hängt* oder *abgebrochen* wird (statt sauber Erfolg/Fehler liefert).
+Alle Connect-/Stream-/Onboarding-Pfade aller drei Apps am echten Code gelesen
+(sshj-Timeout-Semantik, Drain-Reihenfolge, UI-Abbruch-Affordanzen). Frühere
+Runden zielten auf Drift/Crypto/Korrektheit — diese auf den **Stör-Pfad**.
+
+**Gesamtbild:** **kein Release-Blocker, kein Datenverlust/Security-Leck**. Aber
+mehrere Funde treffen den Kernzweck (lange SSH-Operationen) auf dem Fehlerpfad:
+hängende Streams waren unrettbar, und der scheinbare 15s-`runCommand`-Schutz war
+illusorisch. Alle Funde Hard-Rule-1-konform (das Timeout-Primitiv lebt in
+`core-ssh`, kein App-SSH-Typ wandert hoch).
+
+| # | Fund | Typ | Schwere | Status |
+|---|------|-----|---------|--------|
+| P1 | Hängender Stream unrettbar: kein Timeout/Idle-Detektor auf `executeStreaming`/`startStreaming` **und** kein Cancel-Button während des Streamens | Resilienz/UX | **mittel–hoch** | ✅ |
+| P2 | 15s-Timeout von `runCommand` illusorisch — ungebufferter Drain (`await()`) läuft *vor* `cmd.join(15s)`; kein Socket-Read-Timeout gesetzt | Robustheit | **mittel** | ✅ |
+| P3 | Onboarding-Connect (`discoverHostKey`/`pushPublicKey`) ohne `connectTimeout` (inkonsistent zu `connectWithKey`) | Robustheit | niedrig–mittel | ✅ |
+| P4 | Kein Backoff bei wiederholtem Poll-Fehler (Prodder feuert weiter gegen toten Host, ~alle 12 s) | Robustheit | niedrig | ⏸ bewusst belassen |
+| P5 | Abgebrochenes Onboarding nach Pubkey-Push → verwaister `authorized_keys`-Eintrag (toter Key, Hygiene) | Hygiene | niedrig | ⏸ bewusst belassen |
+
+## P1 — Hängender Stream unrettbar — *mittel–hoch*
+`InstallProgress`/`LaunchProgress` zeigten „Done"/„Back" nur bei `finished`
+(= ein `LogLine.ExitCode` ist eingetroffen). Bei einem echten Hänger (Host hält
+den Channel offen, kein EOF, keine `exit-status`) wird nie ein `ExitCode`
+emittiert → `finished` bleibt für immer `false` → kein Button. Der Stream läuft
+auf `viewModelScope` und überlebt Backgrounding → **kein** Weg aus einem
+hängenden Install/Launch außer App-Kill.
+
+**Fix:** Cancel-Button während des Streamens (`cancelInstall`/`cancelLaunch`
+canceln den gehaltenen Stream-`Job` → Channel schließt → blockierte Reader
+bekommen EOF → V5-Teardown baut die Verbindung ab). Tests pro App.
+
+## P2 — `runCommand`-Timeout illusorisch — *mittel*
+`out.await()`/`err.await()` (über `readCapped`) blockieren in `read()` bis EOF —
+**ohne** Timeout — und laufen *vor* `cmd.join(timeoutSeconds)`. Hält der Host den
+Channel offen ohne EOF, wird der 15s-Schutz nie erreicht. `connectWithKey` setzte
+nur `connectTimeout` (TCP), nicht `ssh.timeout` (SO_TIMEOUT), also konnte auch
+KEX/Auth/Read endlos hängen. Betraf **alle** Nicht-Stream-Ops.
+
+**Fix:** `connectWithKey` setzt `ssh.timeout = DEFAULT_READ_TIMEOUT_MS` (30 s, neue
+core-ssh-Konstante). SO_TIMEOUT ist **per Read** (nicht total): ein langes
+Kommando mit laufender Ausgabe trippt nie, nur ein *stiller Stall*. Der
+Streaming-Pfad ruft `connect(readTimeoutMs = 0)` (kein Read-Timeout — Installs
+dürfen lange still sein; Abbruch via P1-Cancel).
+
+## P3 — Onboarding ohne `connectTimeout` — *niedrig–mittel*
+`SshjOnboarding.discoverHostKey`/`pushPublicKey` bauten ein rohes `SSHClient()`
+und riefen `connect()` ohne Timeouts. **Fix:** `connectTimeout`/`timeout` aus den
+core-ssh-Defaults gesetzt (spiegelt `connectWithKey`).
+
+## P4 / P5 — bewusst belassen
+- **P4** (kein Poll-Backoff): pro Versuch durch `connectTimeout` (10 s) + In-Flight-
+  Guard begrenzt → keine Flut; reine Akku-/Log-Hygiene, solange ein Session-Screen
+  auf einem toten Host offen liegt. Nicht den Aufwand wert.
+- **P5** (verwaister `authorized_keys`): nur bei Abbruch *genau* zwischen Push und
+  Persistenz; der private Teil wurde nie gespeichert → toter Eintrag, kein
+  Security-/Funktionsschaden. Idempotenter Append (`grep -qF` vor `>>`) wäre der
+  Fix — zurückgestellt, da reine Hygiene.
+
+### Umsetzungs-Chronik R5 (2026-06-02, Branch `fix/audit-r5-resilience`)
+P1+P2+P3 auf einem Branch: neue core-ssh-Konstante `DEFAULT_READ_TIMEOUT_MS` +
+`readTimeoutMs`-Parameter in `connectWithKey`; Streaming-Clients (Lobber/Caster)
+rufen `connect(readTimeoutMs = 0)`; Onboarding setzt beide Timeouts; Cancel-
+Button + `cancelInstall`/`cancelLaunch` in beiden Apps (Strings `cancel` schon
+vorhanden). `testDebugUnitTest`/`lintDebug` grün (196 Tests, +2 Cancel-Tests).
