@@ -4,8 +4,9 @@ import com.github.reygnn.core.ui.UiText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.reygnn.caster.R
-import com.github.reygnn.core.data.ServerProfile
+import com.github.reygnn.core.data.ServerSelection
 import com.github.reygnn.core.data.SettingsStore
+import com.github.reygnn.core.data.serverSelectionState
 import com.github.reygnn.core.ssh.LogLine
 import com.github.reygnn.core.ssh.plusCapped
 import com.github.reygnn.caster.ssh.ProjectEntry
@@ -15,13 +16,10 @@ import com.github.reygnn.caster.ssh.SshjClient
 import com.github.reygnn.caster.ssh.resolveConfig
 import com.github.reygnn.core.ui.toUiText
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -67,16 +65,6 @@ data class LaunchUiState(
         get() = log.any { it is LogLine.ExitCode }
 }
 
-/**
- * Server-Auswahl für den Picker im Launcher-Screen. [servers] ist die
- * konfigurierte Liste, [selectedIndex] das aktive Profil. Der Picker bleibt
- * unsichtbar, solange `servers.size <= 1`.
- */
-data class ServerSelection(
-    val servers: List<ServerProfile> = emptyList(),
-    val selectedIndex: Int = 0,
-)
-
 class LaunchViewModel(
     private val settings: SettingsStore,
     // Host-key persistence is wired in CasterViewModelFactory (appScope) so it
@@ -87,10 +75,7 @@ class LaunchViewModel(
     private val _state = MutableStateFlow(LaunchUiState())
     val state: StateFlow<LaunchUiState> = _state.asStateFlow()
 
-    val serverSelection: StateFlow<ServerSelection> =
-        combine(settings.servers, settings.selectedIndex) { servers, idx ->
-            ServerSelection(servers, idx.coerceIn(0, maxOf(0, servers.lastIndex)))
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, ServerSelection())
+    val serverSelection: StateFlow<ServerSelection> = settings.serverSelectionState(viewModelScope)
 
     /** Switch the active server profile, then refresh the project list for it. */
     fun selectServer(index: Int) {

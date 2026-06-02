@@ -4,20 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.core.ui.toUiText
-import com.github.reygnn.core.data.ServerProfile
+import com.github.reygnn.core.data.ServerSelection
 import com.github.reygnn.core.data.SettingsStore
+import com.github.reygnn.core.data.serverSelectionState
 import com.github.reygnn.prodder.ssh.ScreenSession
 import com.github.reygnn.prodder.ssh.SshClient
 import com.github.reygnn.prodder.ssh.SshConfig
 import com.github.reygnn.prodder.ssh.SshjClient
 import com.github.reygnn.prodder.ssh.resolveConfig
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -35,16 +33,6 @@ data class SessionsUiState(
 )
 
 /**
- * Server-Auswahl für den Picker im Sessions-Screen. [servers] ist die
- * konfigurierte Liste, [selectedIndex] das aktive Profil. Der Picker bleibt
- * unsichtbar, solange `servers.size <= 1`.
- */
-data class ServerSelection(
-    val servers: List<ServerProfile> = emptyList(),
-    val selectedIndex: Int = 0,
-)
-
-/**
  * Listet alle screen-Sessions des gewählten Build-Hosts und erlaubt den
  * Wechsel des Server-Profils. Das Lesen/Senden einer einzelnen Session
  * besorgt [SessionViewModel].
@@ -59,10 +47,7 @@ class SessionsViewModel(
     private val _state = MutableStateFlow(SessionsUiState())
     val state: StateFlow<SessionsUiState> = _state.asStateFlow()
 
-    val serverSelection: StateFlow<ServerSelection> =
-        combine(settings.servers, settings.selectedIndex) { servers, idx ->
-            ServerSelection(servers, idx.coerceIn(0, maxOf(0, servers.lastIndex)))
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, ServerSelection())
+    val serverSelection: StateFlow<ServerSelection> = settings.serverSelectionState(viewModelScope)
 
     /** Switch the active server profile, then refresh its session list. */
     fun selectServer(index: Int) {
