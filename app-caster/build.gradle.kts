@@ -11,8 +11,8 @@ android {
         applicationId = "com.github.reygnn.caster"
         minSdk        = 36
         targetSdk     = 36
-        versionCode   = 10
-        versionName   = "0.6.0"
+        versionCode   = 11
+        versionName   = "0.6.1"
     }
 
     buildTypes {

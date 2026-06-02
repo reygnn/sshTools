@@ -11,8 +11,8 @@ android {
         applicationId = "com.github.reygnn.lobber"
         minSdk        = 36
         targetSdk     = 36
-        versionCode   = 30
-        versionName   = "0.7.0"
+        versionCode   = 31
+        versionName   = "0.7.1"
     }
 
     buildTypes {
