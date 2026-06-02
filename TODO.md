@@ -20,14 +20,15 @@ Legende: 🟢 risikolos · 🟡 mittel · 🔴 größer (eigener Branch).
   `implementation(libs.kotlinx.serialization.json)`.
   *Akzeptanz:* `./gradlew testDebugUnitTest` grün, `core-data` behält das Plugin.
 
-- [ ] **A7 · Test-Namen angleichen** 🟢
-  `PinningHostKeyVerifierTest` → einheitlich (entfällt mit B2, falls B2 zuerst).
+- [x] **A7 · Test-Namen angleichen** 🟢 (erledigt 2026-06-02, mit B2)
+  `PinningHostKeyVerifierTest` entfiel — der konsolidierte Test heißt
+  einheitlich `TofuHostKeyVerifierTest` in `core-ssh`.
 
 ---
 
 ## Phase 2 — Tests konsolidieren
 
-- [ ] **B2 · core-ssh-Tests an ihren Ort** 🟡
+- [x] **B2 · core-ssh-Tests an ihren Ort** 🟡 (erledigt 2026-06-02)
   - `SshSecurityTest`, `SshKeygenTest`, `BcOpenSshKeyProviderTest`,
     `PathQuoteTest` von `app-lobber/src/test` → `core-ssh/src/test`.
   - Die **drei** `TofuHostKeyVerifier`-Tests (lobber/caster/prodder) zu **einem**

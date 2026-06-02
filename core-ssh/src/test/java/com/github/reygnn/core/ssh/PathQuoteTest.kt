@@ -1,5 +1,4 @@
-package com.github.reygnn.lobber.ssh
-import com.github.reygnn.core.ssh.pathQuote
+package com.github.reygnn.core.ssh
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

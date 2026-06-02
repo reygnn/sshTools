@@ -1,6 +1,4 @@
-package com.github.reygnn.lobber.ssh
-import com.github.reygnn.core.ssh.BcOpenSshKeyProvider
-import com.github.reygnn.core.ssh.SshKeygen
+package com.github.reygnn.core.ssh
 
 import net.schmizz.sshj.common.KeyType
 import org.junit.Assert.assertEquals

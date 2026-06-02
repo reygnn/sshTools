@@ -1,5 +1,4 @@
-package com.github.reygnn.lobber.ssh
-import com.github.reygnn.core.ssh.SshSecurity
+package com.github.reygnn.core.ssh
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.Assert.assertEquals
