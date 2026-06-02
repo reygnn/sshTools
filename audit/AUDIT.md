@@ -501,7 +501,7 @@ Konsolidierungsvorschläge zielen auf `core-data`/`core-ui`).
 | V2 | `find -printf '%T@'` locale-abhängiges Dezimal-Trennzeichen → AABs verschwinden lautlos | Korrektheit/Robustheit | mittel | ✅ Quick-Win |
 | V3 | `SettingsViewModel`-CRUD überschreibt asynchron gelernten Host-Key-Pin (stale Snapshot) | Concurrency/Security | mittel | ✅ `fix/audit-r4-v3-pin-race` |
 | V4 | Onboarding sendet Passwort an noch *unverifizierten* Host (TOFU-First-Use-Secrecy) | Security | mittel (inhärent) | ✅ `fix/audit-r4-v4-onboarding-tofu` |
-| V5 | Streaming-Reader (`lineSequence()`) nicht cancellation-fähig → verzögerter `.use{}`-Teardown | Resource/Robustheit | niedrig–mittel | offen |
+| V5 | Streaming-Reader (`lineSequence()`) nicht cancellation-fähig → verzögerter `.use{}`-Teardown | Resource/Robustheit | niedrig–mittel | ✅ `fix/audit-r4-v5-stream-cancel` |
 | V6 | Prodder `capture`/hardcopy: Exit-Code verworfen + fixe `sleep 0.15` → leerer Schirm als „Erfolg" | Korrektheit | niedrig–mittel | ✅ Quick-Win (Exit-Check; `sleep` als Limit belassen) |
 | V7 | Prodder `sendRaw` ohne In-Flight-Guard → überlappende `stuff`-Payloads (Tastendreher) | Concurrency | niedrig–mittel | ✅ Quick-Win |
 | V8 | Decrypt-Fehler des at-rest-Keys lautlos zu „nicht konfiguriert" (GCM-Tag-Failure = Tampering) | Security/Robustheit | niedrig | ✅ Quick-Win (Log.w) |
@@ -523,7 +523,20 @@ Konsolidierungsvorschläge zielen auf `core-data`/`core-ui`).
 - **V10** — `if (s.step != Idle) return` in `OnboardingViewModel.start()` (+ Test).
 
 `./gradlew testDebugUnitTest lintDebug` grün (0 Lint-Issues), `bundleRelease` grün
-(R8/minify sauber). Offen bleibt V5.
+(R8/minify sauber). **Alle Runde-4-Funde (V1–V11) erledigt.**
+
+### Umsetzungs-Chronik V5 (2026-06-02, Branch `fix/audit-r4-v5-stream-cancel`)
+
+- **V5** — Die Streaming-Pfade (`startStreaming` Caster, `executeStreaming` Lobber)
+  umschließen `out.join()/err.join()/cmd.join()` jetzt mit `try { … } finally {
+  if (!isActive) runCatching { cmd.close() } }`. Bei Cancellation mitten im Stream
+  hingen die in `readLine()` blockierten Reader sonst, bis der Host die nächste
+  Zeile schrieb/den Channel schloss — `coroutineScope` wartete auf die blockierten
+  Kinder, und der `.use{}`-Teardown (Socket/Session) verzögerte sich. Das aktive
+  `cmd.close()` gibt den Readern EOF, sie unwinden, und die Verbindung wird prompt
+  abgebaut. Gemeinsame Form, in beiden Apps gespiegelt. (Kein Unit-Test — der
+  Streaming-Pfad nutzt echte sshj-Streams hinter dem Interface; abgesichert über
+  Strukturelle-Concurrency-Analyse + grünen Build.)
 
 ### Umsetzungs-Chronik V9 + V11 (2026-06-02, Branch `fix/audit-r4-v9-v11`)
 

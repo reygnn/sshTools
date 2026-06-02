@@ -11,6 +11,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -78,8 +79,15 @@ class SshjClient(
                         cmd.errorStream.bufferedReader().lineSequence()
                             .forEach { send(LogLine.Stderr(it)) }
                     }
-                    out.join(); err.join(); cmd.join()
-                    send(LogLine.ExitCode(cmd.exitStatus))
+                    try {
+                        out.join(); err.join(); cmd.join()
+                        send(LogLine.ExitCode(cmd.exitStatus))
+                    } finally {
+                        // On cancellation the readers are blocked in readLine(); closing the
+                        // channel gives them EOF so they unwind and `.use {}` tears the
+                        // connection down promptly instead of waiting for the host. See AUDIT V5.
+                        if (!isActive) runCatching { cmd.close() }
+                    }
                 }
             }
         }
