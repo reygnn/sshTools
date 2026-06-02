@@ -152,19 +152,20 @@ Konvention „kein androidTest außer instrumentiertes Verhalten zählt wirklich
 
 ---
 
-## Tier 4 — Compose-UI — ✅ teilweise implementiert
+## Tier 4 — Compose-UI — ✅ implementiert
 
-> Umgesetzt: Compose-Test-Infra in core-ui (Robolectric + `createComposeRule`,
-> kein Gerät nötig). Statt jeden VM-gebundenen Screen zu zerlegen, wurde der
-> **identische** Host-Key-Dialog aus allen drei Onboarding-Screens nach core-ui
-> extrahiert (`HostKeyConfirmDialog`, stateless, `cu_…`-Strings) — entfernt die
-> Dreifach-Duplizierung *und* macht ihn testbar. Tests (8):
-> `HostKeyConfirmDialogTest` (Fingerprint sichtbar, Confirm/Cancel feuern genau
-> einen Callback — die sicherheitskritische Entscheidung) + `LogViewTest`
-> (`LogLineRow`-Rendering aller Varianten inkl. Exit-Marker).
+> Compose-Test-Infra unter Robolectric (`createComposeRule`, kein Gerät) in
+> core-ui und app-lobber. Statt jeden VM-gebundenen Screen zu zerlegen, wurden
+> die testenswerten Teile als stateless Composables herausgezogen. Tests (18):
 >
-> **Offen:** Self-Install-Dialog (Lobber) und `ServerPicker`/Auto-Scroll —
-> bräuchten je einen `…Content`-Extraktion aus den großen `Screens.kt`.
+> - **core-ui (10):** `HostKeyConfirmDialog` (aus allen drei Onboarding-Screens
+>   entdupliziert, sicherheitskritische Trust-Entscheidung — Fingerprint
+>   sichtbar, Confirm/Cancel feuern genau einen Callback), `LogLineRow`
+>   (alle Varianten inkl. Exit-Marker), `ServerPicker` (zeigt aktives Profil,
+>   Auswahl meldet den richtigen Index).
+> - **app-lobber (7):** `SelfInstallDialog` (AAB-Name sichtbar, Continue/Cancel
+>   feuern korrekt — AUDIT V9) und `InstallProgress` (Log-Rendering,
+>   Auto-Scroll-to-Tail, Erfolg/Fehler-Verdikt je Exit-Code — AUDIT V1).
 
 **Testbarkeits-Hürde:** Die Screens nehmen die VM direkt
 (`fun OnboardingScreen(viewModel: OnboardingViewModel, …)`), nicht gehoisteten

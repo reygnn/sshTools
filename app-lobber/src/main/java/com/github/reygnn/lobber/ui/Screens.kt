@@ -305,20 +305,10 @@ fun InstallerScreen(
     }
 
     s.pendingSelfInstall?.let { aab ->
-        AlertDialog(
-            onDismissRequest = viewModel::cancelSelfInstall,
-            title = { Text(stringResource(R.string.self_install_title)) },
-            text = { Text(stringResource(R.string.self_install_body, aab)) },
-            confirmButton = {
-                TextButton(onClick = viewModel::confirmSelfInstall) {
-                    Text(stringResource(R.string.self_install_continue))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::cancelSelfInstall) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+        SelfInstallDialog(
+            aab = aab,
+            onConfirm = viewModel::confirmSelfInstall,
+            onCancel = viewModel::cancelSelfInstall,
         )
     }
 
@@ -433,8 +423,32 @@ private fun AabList(
 private fun formatAabDate(epochSeconds: Long): String =
     AabDateFormatter.format(Instant.ofEpochSecond(epochSeconds).atZone(ZoneId.systemDefault()))
 
+/**
+ * Confirmation shown when the AAB about to be installed is Lobber itself (or the
+ * self-check was inconclusive, fail-safe): installing over the running app is
+ * usually a mistake. Stateless so it is Compose-testable. See AUDIT V9.
+ */
 @Composable
-private fun InstallProgress(
+internal fun SelfInstallDialog(aab: String, onConfirm: () -> Unit, onCancel: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(stringResource(R.string.self_install_title)) },
+        text = { Text(stringResource(R.string.self_install_body, aab)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.self_install_continue))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
+internal fun InstallProgress(
     aab: String,
     log: List<LogLine>,
     finished: Boolean,

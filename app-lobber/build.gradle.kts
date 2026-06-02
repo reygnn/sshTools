@@ -40,7 +40,10 @@ android {
             )
         }
     }
-    testOptions { unitTests.isReturnDefaultValues = true }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+        unitTests.isIncludeAndroidResources = true // Robolectric needs resources/manifest
+    }
 }
 
 dependencies {
@@ -68,4 +71,9 @@ dependencies {
     runtimeOnly(libs.slf4j.nop)
 
     testImplementation(project(":core-testing")) // api-exposes junit, mockk, coroutines-test, turbine
+    // Compose UI tests under Robolectric (self-install dialog, install-log auto-scroll).
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
+    testImplementation(libs.robolectric)
+    debugImplementation(libs.androidx.ui.test.manifest)
 }
