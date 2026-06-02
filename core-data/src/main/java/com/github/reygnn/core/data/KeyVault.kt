@@ -3,6 +3,7 @@ package com.github.reygnn.core.data
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import java.security.KeyStore
+import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -72,4 +73,31 @@ object KeyVault {
         cipher.init(Cipher.DECRYPT_MODE, secretKey(), GCMParameterSpec(GCM_TAG_BITS, iv))
         return String(cipher.doFinal(ciphertext), Charsets.UTF_8)
     }
+}
+
+/**
+ * Interprets the on-disk key blob and returns the plaintext PEM, or null if there
+ * is none or it can't be recovered. Kept pure (no Android dependencies) so the
+ * branching is unit-testable; the actual AES decrypt ([KeyVault.decrypt]) needs
+ * the Android Keystore and is injected as [decrypt].
+ *
+ * - blank → null (no key stored yet)
+ * - `-----`-prefixed → returned as-is (legacy plaintext PEM from before at-rest
+ *   encryption; Base64 ciphertext never starts with `-`, so the case is
+ *   unambiguous, and the next `saveKey` rewrites it encrypted)
+ * - otherwise → Base64-decode + [decrypt]; on failure (a tampered blob = GCM tag
+ *   mismatch, a wiped Keystore key, or malformed Base64) report via [onError] and
+ *   return null. The blob is then unrecoverable and re-onboarding is required.
+ *   See AUDIT V8/V11.
+ */
+internal fun decodeKeyBlob(
+    raw: String,
+    decrypt: (ByteArray) -> String,
+    onError: (Throwable) -> Unit = {},
+): String? {
+    val trimmed = raw.trim()
+    if (trimmed.isEmpty()) return null
+    if (trimmed.startsWith("-----")) return trimmed
+    return runCatching { decrypt(Base64.getDecoder().decode(trimmed)) }
+        .getOrElse { onError(it); null }
 }

@@ -79,4 +79,26 @@ class ScreenSessionsTest {
         val out = "\t7.dup\t(Detached)\n\t7.dup\t(Detached)"
         assertEquals(1, parseScreenSessions(out).size)
     }
+
+    // ── isScreenNoSessionsOutput (AUDIT V9) ───────────────────────
+
+    @Test
+    fun `recognises the no-sessions notices`() {
+        assertTrue(isScreenNoSessionsOutput("No Sockets found in /run/screen/S-ci."))
+        assertTrue(isScreenNoSessionsOutput("No screen session found."))
+    }
+
+    @Test
+    fun `does not treat a real failure as no-sessions`() {
+        // screen missing / permission denied must NOT look like "no sessions" —
+        // the caller surfaces these as errors instead of an empty list.
+        assertTrue(!isScreenNoSessionsOutput("bash: screen: command not found"))
+        assertTrue(!isScreenNoSessionsOutput("Cannot access /run/screen: Permission denied"))
+        assertTrue(!isScreenNoSessionsOutput(""))
+    }
+
+    @Test
+    fun `does not treat an actual session listing as no-sessions`() {
+        assertTrue(!isScreenNoSessionsOutput("There is a screen on:\n\t1.x\t(Detached)"))
+    }
 }

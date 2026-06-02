@@ -47,11 +47,21 @@ class SshjClient(
     override suspend fun aabContainsPackage(aabName: String, pkg: String): Boolean =
         withContext(Dispatchers.IO) {
             connect().use { ssh ->
-                val (exit, _, _) = ssh.runCommand(
-                    "unzip -p ${pathQuote(config.workingDir)}/${shellQuote(aabName)} " +
-                        "base/manifest/AndroidManifest.xml | grep -aFq -- ${shellQuote(pkg)}"
+                // Capture the manifest in a var so unzip's failure (corrupt/missing
+                // AAB, no unzip) is distinguishable from grep's "no match": `|| exit 3`
+                // → exit 3 = could not read the manifest, 0 = package present, 1 =
+                // absent. The caller treats anything but 0/1 as "uncertain" and shows
+                // the self-install confirmation anyway (fail-safe). See AUDIT V9.
+                val (exit, _, err) = ssh.runCommand(
+                    "m=\$(unzip -p ${pathQuote(config.workingDir)}/${shellQuote(aabName)} " +
+                        "base/manifest/AndroidManifest.xml) || exit 3; " +
+                        "printf '%s' \"\$m\" | grep -aFq -- ${shellQuote(pkg)}"
                 )
-                exit == 0
+                when (exit) {
+                    0 -> true
+                    1 -> false
+                    else -> throw RemoteCommandException(exit, err.trim())
+                }
             }
         }
 

@@ -145,27 +145,18 @@ class SettingsStore(private val context: Context) {
     }
 
     /**
-     * Decrypts the key from disk. A legacy plaintext PEM (installs from before
-     * at-rest encryption) is recognised by the `-----` prefix and returned
-     * as-is — Base64 ciphertext never starts with `-`, so the case is
-     * unambiguous; the next [saveKey] rewrites it encrypted. Returns `null` if
-     * absent or if decryption fails (e.g. the Keystore key was wiped — the blob
-     * is then unrecoverable and re-onboarding is required).
+     * Decrypts the key from disk via [decodeKeyBlob] (legacy plaintext PEM,
+     * absent, and decrypt-failure handling live there). A decrypt/authenticate
+     * failure is logged so a tampered blob or wiped Keystore key is
+     * distinguishable from "no key yet" (cf. R5). See AUDIT V8/V11.
      */
     private fun readDecryptedKey(): String? {
         if (!keyFile.exists()) return null
-        val raw = keyFile.readText().trim()
-        if (raw.isEmpty()) return null
-        if (raw.startsWith("-----")) return raw
-        return runCatching { KeyVault.decrypt(Base64.getDecoder().decode(raw)) }
-            .getOrElse { e ->
-                // A GCM auth-tag failure here means the key blob was tampered with;
-                // other failures mean the Keystore key was wiped. Both currently
-                // degrade to "not configured" — at least log it so the failure is
-                // distinguishable from "no key yet" (cf. R5). See AUDIT V8.
-                Log.w(TAG, "Stored key blob failed to decrypt/authenticate", e)
-                null
-            }
+        return decodeKeyBlob(
+            raw = keyFile.readText(),
+            decrypt = { KeyVault.decrypt(it) },
+            onError = { e -> Log.w(TAG, "Stored key blob failed to decrypt/authenticate", e) },
+        )
     }
 
     /**

@@ -2,6 +2,7 @@ package com.github.reygnn.prodder.ssh
 
 import com.github.reygnn.core.ssh.RemoteCommandException
 import com.github.reygnn.core.ssh.connectWithKey
+import com.github.reygnn.core.ssh.isScreenNoSessionsOutput
 import com.github.reygnn.core.ssh.parseScreenSessions
 import com.github.reygnn.core.ssh.runCommand
 import com.github.reygnn.core.ssh.shellQuote
@@ -24,7 +25,13 @@ class SshjClient(
 
     override suspend fun listSessions(): List<ScreenSession> = withContext(Dispatchers.IO) {
         connect().use { ssh ->
-            val (_, out, _) = ssh.runCommand("LC_ALL=C screen -ls || true")
+            // `screen -ls` exits non-zero when there are no sessions; treat only
+            // that benign case as empty and surface anything else (screen missing,
+            // permission denied) as an error instead of "no sessions". See AUDIT V9.
+            val (exit, out, err) = ssh.runCommand("LC_ALL=C screen -ls")
+            if (exit != 0 && !isScreenNoSessionsOutput(out + err)) {
+                throw RemoteCommandException(exit, err.ifBlank { out }.trim())
+            }
             parseSessions(out).sortedBy { it.name }
         }
     }

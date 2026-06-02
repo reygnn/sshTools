@@ -505,9 +505,9 @@ Konsolidierungsvorschläge zielen auf `core-data`/`core-ui`).
 | V6 | Prodder `capture`/hardcopy: Exit-Code verworfen + fixe `sleep 0.15` → leerer Schirm als „Erfolg" | Korrektheit | niedrig–mittel | ✅ Quick-Win (Exit-Check; `sleep` als Limit belassen) |
 | V7 | Prodder `sendRaw` ohne In-Flight-Guard → überlappende `stuff`-Payloads (Tastendreher) | Concurrency | niedrig–mittel | ✅ Quick-Win |
 | V8 | Decrypt-Fehler des at-rest-Keys lautlos zu „nicht konfiguriert" (GCM-Tag-Failure = Tampering) | Security/Robustheit | niedrig | ✅ Quick-Win (Log.w) |
-| V9 | `screen -ls || true` / `aabContainsPackage` maskieren echte Fehler (fail-open) | Robustheit | niedrig | offen |
+| V9 | `screen -ls || true` / `aabContainsPackage` maskieren echte Fehler (fail-open) | Robustheit | niedrig | ✅ `fix/audit-r4-v9-v11` |
 | V10 | `OnboardingViewModel.start()` ohne In-Flight-Guard → Doppel-Pipeline / doppelter `authorized_keys` | Concurrency | niedrig | ✅ Quick-Win |
-| V11 | `KeyVault` + `readDecryptedKey`-Verzweigungen ohne Test | Test | niedrig | offen |
+| V11 | `KeyVault` + `readDecryptedKey`-Verzweigungen ohne Test | Test | niedrig | ✅ `fix/audit-r4-v9-v11` |
 
 ### Umsetzungs-Chronik Quick-Wins (2026-06-02, Branch `fix/audit-r4-quickwins`)
 
@@ -523,7 +523,25 @@ Konsolidierungsvorschläge zielen auf `core-data`/`core-ui`).
 - **V10** — `if (s.step != Idle) return` in `OnboardingViewModel.start()` (+ Test).
 
 `./gradlew testDebugUnitTest lintDebug` grün (0 Lint-Issues), `bundleRelease` grün
-(R8/minify sauber). Offen bleiben V5, V9, V11.
+(R8/minify sauber). Offen bleibt V5.
+
+### Umsetzungs-Chronik V9 + V11 (2026-06-02, Branch `fix/audit-r4-v9-v11`)
+
+- **V9** — `screen -ls` läuft ohne `|| true`; neuer core-ssh-Helfer
+  `isScreenNoSessionsOutput()` unterscheidet das benigne „keine Sessions" (Exit ≠ 0
+  + „No Sockets found"/„No screen session found") von echten Fehlern (screen fehlt,
+  Permission) → `listProjects`/`isSessionRunning` (Caster) und `listSessions` (Prodder)
+  werfen sonst `RemoteCommandException` statt eine leere Liste zu zeigen. Lobbers
+  `aabContainsPackage` fängt unzip-Fehler ab (`m=$(unzip …) || exit 3`; Exit 3 →
+  `RemoteCommandException`), und `install` nutzt `getOrDefault(true)` → bei
+  unklarer Selbst-Erkennung wird der Bestätigungsdialog **fail-safe** gezeigt.
+  Tests: `ScreenSessionsTest` (Helfer-Pfade) + `InstallViewModelTest` (Fail-safe).
+- **V11** — reine, Android-freie `decodeKeyBlob(raw, decrypt, onError)` in core-data
+  extrahiert (leer/„-----"/Base64+decrypt/Fehler→null); `readDecryptedKey` delegiert.
+  Neuer `KeyBlobTest` deckt alle vier Zweige inkl. Decrypt-/Decode-Fehler ab (das
+  V8-Logging bleibt im SettingsStore-Wrapper, damit der Helfer pur testbar ist).
+
+`testDebugUnitTest`/`lintDebug`/`bundleRelease` grün.
 
 ### Umsetzungs-Chronik V4 (2026-06-02, Branch `fix/audit-r4-v4-onboarding-tofu`)
 

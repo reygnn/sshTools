@@ -2,6 +2,7 @@ package com.github.reygnn.caster.ssh
 
 import com.github.reygnn.core.ssh.RemoteCommandException
 import com.github.reygnn.core.ssh.connectWithKey
+import com.github.reygnn.core.ssh.isScreenNoSessionsOutput
 import com.github.reygnn.core.ssh.parseScreenSessions
 import com.github.reygnn.core.ssh.pathQuote
 import com.github.reygnn.core.ssh.runCommand
@@ -39,7 +40,13 @@ class SshjClient(
             val names = lsOut.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }
                 .mapNotNull(::scriptNameToProject).filter(::isValidProjectName).distinct().toList()
             if (names.isEmpty()) return@use emptyList()
-            val (_, screenOut, _) = ssh.runCommand("LC_ALL=C screen -ls || true")
+            // `screen -ls` exits non-zero when there are no sessions; treat only
+            // that benign case as empty and surface anything else (screen missing,
+            // permission denied) as an error instead of "no running sessions". See AUDIT V9.
+            val (screenExit, screenOut, screenErr) = ssh.runCommand("LC_ALL=C screen -ls")
+            if (screenExit != 0 && !isScreenNoSessionsOutput(screenOut + screenErr)) {
+                throw RemoteCommandException(screenExit, screenErr.ifBlank { screenOut }.trim())
+            }
             val running = parseRunningSessions(screenOut)
             names.map { ProjectEntry(name = it, running = "claude_$it" in running) }.sortedBy { it.name }
         }
@@ -71,7 +78,13 @@ class SshjClient(
 
     override suspend fun isSessionRunning(project: String): Boolean = withContext(Dispatchers.IO) {
         if (!isValidProjectName(project)) return@withContext false
-        connect().use { ssh -> val (_, out, _) = ssh.runCommand("LC_ALL=C screen -ls || true"); "claude_$project" in parseRunningSessions(out) }
+        connect().use { ssh ->
+            val (exit, out, err) = ssh.runCommand("LC_ALL=C screen -ls")
+            if (exit != 0 && !isScreenNoSessionsOutput(out + err)) {
+                throw RemoteCommandException(exit, err.ifBlank { out }.trim())
+            }
+            "claude_$project" in parseRunningSessions(out)
+        }
     }
 }
 

@@ -21,6 +21,19 @@ data class ScreenSessionInfo(
  * (which surfaces id/name/attached); the token extraction lives here so the two
  * can't drift.
  */
+/**
+ * GNU screen prints one of these markers (with `LC_ALL=C`) when no sessions
+ * exist, and then exits non-zero. Recognising them lets a caller tell the benign
+ * "no sessions" case apart from a genuine `screen -ls` failure (screen not
+ * installed, permission denied, unreachable socket dir) so the latter is surfaced
+ * as an error instead of silently rendered as an empty list. See AUDIT V9.
+ */
+private val SCREEN_NO_SESSIONS_MARKERS = listOf("No Sockets found", "No screen session found")
+
+/** True if [output] is screen's "no sessions" notice (see [SCREEN_NO_SESSIONS_MARKERS]). */
+fun isScreenNoSessionsOutput(output: String): Boolean =
+    SCREEN_NO_SESSIONS_MARKERS.any { output.contains(it, ignoreCase = true) }
+
 fun parseScreenSessions(screenLsOutput: String): List<ScreenSessionInfo> =
     screenLsOutput.lineSequence().map { it.trim() }.mapNotNull { line ->
         val token = line.substringBefore('\t').substringBefore(' ').trim()

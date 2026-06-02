@@ -67,7 +67,9 @@ class InstallViewModel(
     fun install(aab: String) {
         viewModelScope.launch {
             val config = settings.resolveConfig() ?: run { _state.update { it.copy(configured = false) }; return@launch }
-            val isSelf = runCatching { createClient(config).aabContainsPackage(aab, BuildConfig.APPLICATION_ID) }.getOrDefault(false)
+            // Fail-safe: if the self-install check can't be determined (connection
+            // or extraction error), show the confirmation anyway. See AUDIT V9.
+            val isSelf = runCatching { createClient(config).aabContainsPackage(aab, BuildConfig.APPLICATION_ID) }.getOrDefault(true)
             if (isSelf) { _state.update { it.copy(pendingSelfInstall = aab) }; return@launch }
             startInstall(aab, config)
         }

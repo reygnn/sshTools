@@ -253,7 +253,9 @@ class InstallViewModelTest {
     }
 
     @Test
-    fun `manifest check failure falls back to no warning`() = runTest(mainDispatcherRule.dispatcher) {
+    fun `manifest check failure falls back to showing the warning (fail-safe)`() = runTest(mainDispatcherRule.dispatcher) {
+        // AUDIT V9: if the self-install check can't be determined, show the
+        // confirmation rather than silently installing without it.
         coEvery { client.aabContainsPackage(any(), any()) } throws IOException("unzip not installed")
         every { client.executeStreaming(any()) } returns flowOf(
             LogLine.Stdout("ok"),
@@ -263,9 +265,10 @@ class InstallViewModelTest {
         vm.install("app-release.aab")
         vm.state.test {
             val final = expectMostRecentItem()
-            assertNull(final.pendingSelfInstall)
-            assertEquals("app-release.aab", final.installing)
+            assertEquals("app-release.aab", final.pendingSelfInstall)
+            assertNull(final.installing)
         }
+        coVerify(exactly = 0) { client.executeStreaming(any()) }
     }
 
     @Test
