@@ -14,14 +14,7 @@ class SshjClient(
     private val onLearnHostKey: (String) -> Unit = {},
 ) : SshClient {
 
-    private fun connect() = connectWithKey(
-        host = config.host,
-        port = config.port,
-        username = config.username,
-        privateKeyPem = config.privateKeyPem,
-        knownHostFingerprint = config.knownHostFingerprint,
-        onLearnHostKey = onLearnHostKey,
-    )
+    private fun connect() = connectWithKey(config, onLearnHostKey = onLearnHostKey)
 
     override suspend fun listSessions(): List<ScreenSession> = withContext(Dispatchers.IO) {
         connect().use { ssh ->

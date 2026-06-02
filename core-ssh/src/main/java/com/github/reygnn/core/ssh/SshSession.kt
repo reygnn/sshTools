@@ -41,6 +41,21 @@ class RemoteCommandException(
 ) : java.io.IOException("remote command failed (exit=$exitStatus): ${stderr.ifBlank { "(no stderr)" }}")
 
 /**
+ * The connection-shaped subset every app's `SshConfig` exposes. Lets
+ * [connectWithKey] accept a config object directly without core knowing the
+ * app-specific shape (Prodder has no `workingDir`, Lobber/Caster do). Each app's
+ * `SshConfig` just implements this — Hard Rule 1: core stays app-agnostic, the
+ * `SshConfig` itself stays per app.
+ */
+interface SshConnectionParams {
+    val host: String
+    val port: Int
+    val username: String
+    val privateKeyPem: String
+    val knownHostFingerprint: String?
+}
+
+/**
  * Opens an [SSHClient], pins the host key trust-on-first-use
  * ([TofuHostKeyVerifier], learned fingerprints reported via [onLearnHostKey]),
  * connects and authenticates with the Ed25519 key in [privateKeyPem].
@@ -69,6 +84,26 @@ fun connectWithKey(
     ssh.authPublickey(username, BcOpenSshKeyProvider(privateKeyPem))
     return ssh
 }
+
+/**
+ * [connectWithKey] taking a [SshConnectionParams] (each app's `SshConfig`), so
+ * the per-app clients don't each repeat unpacking the same five fields.
+ */
+fun connectWithKey(
+    params: SshConnectionParams,
+    connectTimeoutMs: Int = DEFAULT_CONNECT_TIMEOUT_MS,
+    readTimeoutMs: Int = DEFAULT_READ_TIMEOUT_MS,
+    onLearnHostKey: (String) -> Unit = {},
+): SSHClient = connectWithKey(
+    host = params.host,
+    port = params.port,
+    username = params.username,
+    privateKeyPem = params.privateKeyPem,
+    knownHostFingerprint = params.knownHostFingerprint,
+    connectTimeoutMs = connectTimeoutMs,
+    readTimeoutMs = readTimeoutMs,
+    onLearnHostKey = onLearnHostKey,
+)
 
 /**
  * Runs [command] on a fresh session and returns its exit status plus captured

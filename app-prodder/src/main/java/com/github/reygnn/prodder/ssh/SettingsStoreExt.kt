@@ -1,12 +1,13 @@
 package com.github.reygnn.prodder.ssh
 
 import com.github.reygnn.core.data.SettingsStore
-import kotlinx.coroutines.flow.first
+import com.github.reygnn.core.data.resolveSelectedProfileAndKey
 
-suspend fun SettingsStore.resolveConfig(): SshConfig? {
-    val servers = servers.first()
-    if (servers.isEmpty()) return null
-    val idx = selectedIndex.first().coerceIn(0, servers.lastIndex)
-    val pem = readKeyPem() ?: return null
-    return servers[idx].toSshConfig(pem)
-}
+/**
+ * Resolves the currently selected profile + stored private key into a
+ * [SshConfig], or null when unconfigured. Select/clamp/read-key logic is shared
+ * in core-data ([resolveSelectedProfileAndKey]); only the [SshConfig] mapping is
+ * app-local — Prodder's having no `workingDir` (Hard Rule 1).
+ */
+suspend fun SettingsStore.resolveConfig(): SshConfig? =
+    resolveSelectedProfileAndKey()?.let { (profile, pem) -> profile.toSshConfig(pem) }

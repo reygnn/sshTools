@@ -8,14 +8,10 @@ import com.github.reygnn.core.ssh.parseScreenSessions
 import com.github.reygnn.core.ssh.pathQuote
 import com.github.reygnn.core.ssh.runCommand
 import com.github.reygnn.core.ssh.shellQuote
+import com.github.reygnn.core.ssh.streamCommand
 import com.github.reygnn.core.ssh.LogLine
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class SshjClient(
@@ -23,15 +19,8 @@ class SshjClient(
     private val onLearnHostKey: (String) -> Unit = {},
 ) : SshClient {
 
-    private fun connect(readTimeoutMs: Int = DEFAULT_READ_TIMEOUT_MS) = connectWithKey(
-        host = config.host,
-        port = config.port,
-        username = config.username,
-        privateKeyPem = config.privateKeyPem,
-        knownHostFingerprint = config.knownHostFingerprint,
-        readTimeoutMs = readTimeoutMs,
-        onLearnHostKey = onLearnHostKey,
-    )
+    private fun connect(readTimeoutMs: Int = DEFAULT_READ_TIMEOUT_MS) =
+        connectWithKey(config, readTimeoutMs = readTimeoutMs, onLearnHostKey = onLearnHostKey)
 
     override suspend fun listProjects(): List<ProjectEntry> = withContext(Dispatchers.IO) {
         connect().use { ssh ->
@@ -55,33 +44,17 @@ class SshjClient(
         }
     }
 
-    override fun startStreaming(project: String): Flow<LogLine> = channelFlow {
+    override fun startStreaming(project: String): Flow<LogLine> {
         require(isValidProjectName(project)) { "Invalid project name: $project" }
         val sessionName = "claude_$project"
         val full = "cd ${pathQuote(config.workingDir)} && " +
             "screen -dmS ${shellQuote(sessionName)} ${shellQuote("./claude_${project}.sh")} && " +
             "echo 'screen session ${sessionName} started'"
         // readTimeoutMs = 0: a launch log can be silent for a while; a stalled
-        // stream is recovered by user cancel, not a socket timeout. See AUDIT P1/P2.
-        connect(readTimeoutMs = 0).use { ssh ->
-            ssh.startSession().use { session ->
-                val cmd = session.exec(full)
-                coroutineScope {
-                    val out = launch(Dispatchers.IO) { cmd.inputStream.bufferedReader().lineSequence().forEach { send(LogLine.Stdout(it)) } }
-                    val err = launch(Dispatchers.IO) { cmd.errorStream.bufferedReader().lineSequence().forEach { send(LogLine.Stderr(it)) } }
-                    try {
-                        out.join(); err.join(); cmd.join()
-                        send(LogLine.ExitCode(cmd.exitStatus))
-                    } finally {
-                        // On cancellation the readers are blocked in readLine(); closing the
-                        // channel gives them EOF so they unwind and `.use {}` tears the
-                        // connection down promptly instead of waiting for the host. See AUDIT V5.
-                        if (!isActive) runCatching { cmd.close() }
-                    }
-                }
-            }
-        }
-    }.flowOn(Dispatchers.IO)
+        // stream is recovered by user cancel, not a socket timeout. The drain/
+        // cancel mechanics live in core-ssh's streamCommand. See AUDIT P1/P2/V5.
+        return streamCommand({ connect(readTimeoutMs = 0) }, full)
+    }
 
     override suspend fun stopSession(project: String): Boolean = withContext(Dispatchers.IO) {
         require(isValidProjectName(project))

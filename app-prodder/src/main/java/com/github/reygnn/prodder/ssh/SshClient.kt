@@ -1,14 +1,15 @@
 package com.github.reygnn.prodder.ssh
 
 import com.github.reygnn.core.data.ServerProfile
+import com.github.reygnn.core.ssh.SshConnectionParams
 
 data class SshConfig(
-    val host: String,
-    val port: Int = 22,
-    val username: String,
-    val privateKeyPem: String,
-    val knownHostFingerprint: String? = null,
-)
+    override val host: String,
+    override val port: Int = 22,
+    override val username: String,
+    override val privateKeyPem: String,
+    override val knownHostFingerprint: String? = null,
+) : SshConnectionParams
 
 /** Prodder: no workingDir in the profile. */
 fun ServerProfile.toSshConfig(privateKeyPem: String) = SshConfig(

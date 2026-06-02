@@ -2,16 +2,17 @@ package com.github.reygnn.caster.ssh
 
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.ssh.LogLine
+import com.github.reygnn.core.ssh.SshConnectionParams
 import kotlinx.coroutines.flow.Flow
 
 data class SshConfig(
-    val host: String,
-    val port: Int = 22,
-    val username: String,
+    override val host: String,
+    override val port: Int = 22,
+    override val username: String,
     val workingDir: String,
-    val privateKeyPem: String,
-    val knownHostFingerprint: String? = null,
-)
+    override val privateKeyPem: String,
+    override val knownHostFingerprint: String? = null,
+) : SshConnectionParams
 
 fun ServerProfile.toSshConfig(privateKeyPem: String) = SshConfig(
     host = host, port = port, username = username,

@@ -1,21 +1,13 @@
 package com.github.reygnn.lobber.ssh
 
 import com.github.reygnn.core.data.SettingsStore
-import kotlinx.coroutines.flow.first
+import com.github.reygnn.core.data.resolveSelectedProfileAndKey
 
 /**
- * Lobber-specific: resolves the currently selected [ServerProfile] + stored
- * private key into a [SshConfig]. Returns null when unconfigured.
- *
- * Replaces the `settings.config` Flow from the single-app version — suspend
- * functions compose more naturally across modules than a Flow that needs to
- * read from disk synchronously inside map{}.
+ * Lobber-specific: resolves the currently selected profile + stored private key
+ * into a [SshConfig], or null when unconfigured. The select/clamp/read-key logic
+ * is shared in core-data ([resolveSelectedProfileAndKey]); only the app-shaped
+ * [SshConfig] mapping is local (Hard Rule 1).
  */
-suspend fun SettingsStore.resolveConfig(): SshConfig? {
-    val servers = servers.first()
-    if (servers.isEmpty()) return null
-    val idx = selectedIndex.first().coerceIn(0, servers.lastIndex)
-    val profile = servers[idx]
-    val pem = readKeyPem() ?: return null
-    return profile.toSshConfig(pem)
-}
+suspend fun SettingsStore.resolveConfig(): SshConfig? =
+    resolveSelectedProfileAndKey()?.let { (profile, pem) -> profile.toSshConfig(pem) }
