@@ -63,9 +63,15 @@ class SettingsStore(private val context: Context) {
         readServers(prefs)
     }
 
+    /**
+     * The **raw** stored profile index (clamped only on write via
+     * [setSelectedIndex]). Read-side clamping is the consumer's job — both
+     * [serverSelectionState] and each app's `resolveConfig()` already clamp
+     * against the server list they hold, so decoding the servers JSON here just
+     * to re-clamp would be redundant work on every emission.
+     */
     val selectedIndex: Flow<Int> = context.dataStore.data.map { prefs ->
-        val servers = readServers(prefs)
-        (prefs[KEY_SELECTED] ?: 0).coerceIn(0, maxOf(0, servers.lastIndex))
+        prefs[KEY_SELECTED] ?: 0
     }
 
     /** Emits true once at least one server *and* the key file are on disk. */
