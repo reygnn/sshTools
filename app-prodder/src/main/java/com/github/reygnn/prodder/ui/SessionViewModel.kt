@@ -14,7 +14,6 @@ import com.github.reygnn.prodder.ssh.buildStuffPayload
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -70,6 +69,10 @@ class SessionViewModel(
     fun refresh() {
         val id = _state.value.sessionId
         if (id.isEmpty()) return
+        // Kein zweiter Capture, solange einer läuft — Auto-Refresh-Tick (2 s),
+        // Refresh-Button und der sendRaw-Nachlauf können sonst überlappen und
+        // einen veralteten Snapshot zurückschreiben (last-writer-wins).
+        if (_state.value.loading) return
         viewModelScope.launch {
             val config = settings.resolveConfig() ?: return@launch
             _state.update { it.copy(loading = true) }

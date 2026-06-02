@@ -1,17 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The private SSH key (filesDir/id_ed25519) grants shell access to the build
-    host. It must never leave the device. allowBackup="false" already disables
-    cloud and adb backup; these rules additionally exclude every file and
-    preference from Android 12+ device-to-device transfer.
+    Belt-and-suspenders on top of android:allowBackup="false": explicitly keep
+    every app data domain out of both transfer paths. The private SSH key
+    (filesDir/id_ed25519) and the DataStore prefs (under the "file" domain) must
+    never leave the device — not via Google Auto Backup, not via Android 12+
+    device-to-device transfer.
 -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="file" />
         <exclude domain="sharedpref" />
+        <exclude domain="database" />
+        <exclude domain="external" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="file" />
         <exclude domain="sharedpref" />
+        <exclude domain="database" />
+        <exclude domain="external" />
     </device-transfer>
 </data-extraction-rules>

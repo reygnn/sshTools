@@ -332,20 +332,41 @@ Alle Funde sind Hard-Rule-1-konform — keine Empfehlung zieht App-SSH-Typen
 
 | # | Fund | Typ | Schwere | Status |
 |---|------|-----|---------|--------|
-| R1 | Prodder Auto-Refresh läuft im Hintergrund weiter (`LaunchedEffect` nicht lifecycle-bewusst) | Lifecycle/Robustheit | **mittel–hoch** | offen |
-| R2 | `SessionViewModel.refresh()` ohne In-Flight-Guard → überlappende Captures | Concurrency | mittel | offen |
-| R3 | Caster: deutscher Erfolgs-Stdout `'… gestartet'` umgeht Lokalisierung (Erfolgspfad) | Drift/L10n | mittel | offen |
-| R4 | `parseScreenSessions`: „attached" wird auf der ganzen Zeile geprüft (Namens-Token) | Parsing-Bug | niedrig–mittel | offen |
-| R5 | `readServers` verwirft ganze Profilliste bei einem defekten Eintrag, still | Robustheit | niedrig | offen |
-| R6 | `data_extraction_rules.xml` driftet zwischen den drei Apps | Hygiene/Drift | niedrig | offen |
-| R7 | Tote Reste: `ui.tooling.preview`-Dep, `testInstrumentationRunner`, ungenutzte `flow.first`-Imports | Hygiene | niedrig | offen |
-| R8 | Test-Lücken in geteilter core-Logik (`serverSelectionState`-Clamp, `toUiText()`-Fallback) | Test | niedrig | offen |
+| R1 | Prodder Auto-Refresh läuft im Hintergrund weiter (`LaunchedEffect` nicht lifecycle-bewusst) | Lifecycle/Robustheit | **mittel–hoch** | ✅ |
+| R2 | `SessionViewModel.refresh()` ohne In-Flight-Guard → überlappende Captures | Concurrency | mittel | ✅ |
+| R3 | Caster: deutscher Erfolgs-Stdout `'… gestartet'` umgeht Lokalisierung (Erfolgspfad) | Drift/L10n | mittel | ✅ |
+| R4 | `parseScreenSessions`: „attached" wird auf der ganzen Zeile geprüft (Namens-Token) | Parsing-Bug | niedrig–mittel | ✅ |
+| R5 | `readServers` verwirft ganze Profilliste bei einem defekten Eintrag, still | Robustheit | niedrig | ✅ |
+| R6 | `data_extraction_rules.xml` driftet zwischen den drei Apps | Hygiene/Drift | niedrig | ✅ |
+| R7 | Tote Reste: `ui.tooling.preview`-Dep, `testInstrumentationRunner`, ungenutzte `flow.first`-Imports | Hygiene | niedrig | ✅ |
+| R8 | Test-Lücken in geteilter core-Logik (`serverSelectionState`-Clamp, `toUiText()`-Fallback) | Test | niedrig | ✅ |
 
-Sehr-niedrig-Notizen (Doku/Robustheit, optional): TOFU accept-first/pin-async +
-`learnHostFingerprint`-Stillschweigen als bewusste Entscheidung dokumentieren +
-Logging; `readCapped`-`use{}` schließt Stream beim Cap → KDoc von `runCommand`
-präzisieren; `adbRunning`-Reset in `finally` (Lobber); Caster-Launch-Log ohne
-Auto-Scroll (Drift zu Lobber/Prodder).
+Sehr-niedrig-Notizen (Doku/Robustheit, **bewusst zurückgestellt** — kein
+Verhaltensschaden): TOFU accept-first/pin-async + `learnHostFingerprint`-
+Stillschweigen als bewusste Entscheidung dokumentieren + Logging; `readCapped`-
+`use{}` schließt Stream beim Cap → KDoc von `runCommand` präzisieren; `adbRunning`-
+Reset in `finally` (Lobber); Caster-Launch-Log ohne Auto-Scroll (Drift zu Lobber/
+Prodder).
+
+### Umsetzungs-Chronik R1–R8 (2026-06-02, Branch `refactor/audit-r3`)
+
+- **R1** — Prodder-Auto-Refresh in `SessionScreen` an `repeatOnLifecycle(RESUMED)`
+  gekoppelt: Polling endet bei `ON_PAUSE`, läuft bei `ON_RESUME` wieder an.
+- **R2** — `if (_state.value.loading) return` in `SessionViewModel.refresh()`
+  (gleiches Muster wie `loadSessions`/`loadProjects`).
+- **R3** — Caster-`echo` auf Englisch (`'screen session … started'`).
+- **R4** — `parseScreenSessions` prüft „attached" nur noch im Zustands-Suffix nach
+  dem Tab (+ Regressionstest „attached im Namen bleibt detached").
+- **R5** — `readServers`: `getOrDefault` → `getOrElse` mit `Log.w`.
+- **R6** — `data_extraction_rules.xml` in Caster + Prodder auf die kanonische
+  Lobber-Fassung (4 Domains, kein `path`, EN-Kommentar) vereinheitlicht.
+- **R7** — `ui.tooling.preview` aus den drei App-Builds **und** dem version
+  catalog entfernt; `testInstrumentationRunner`-Zeile (3×) entfernt; ungenutzte
+  `flow.first`-Imports (3 VMs) entfernt.
+- **R8** — `core-data/ServerSelectionTest` (Clamp-Pfad) + `core-ui/ErrorTextTest`
+  (alle drei `toUiText`-Zweige); core-ui hat dafür neu ein Test-Source-Set.
+
+`./gradlew testDebugUnitTest lintDebug` grün (0 Lint-Issues über alle 7 Module).
 
 ---
 

@@ -54,7 +54,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.github.reygnn.prodder.R
 import com.github.reygnn.prodder.ssh.ScreenSession
 import kotlinx.coroutines.delay
@@ -175,10 +178,18 @@ fun SessionScreen(
     // Auto-Refresh wird hier in der UI getrieben (nicht im ViewModel), an
     // state.autoRefresh gekoppelt: schaltet der User ihn aus, endet die
     // Schleife; verlässt er den Screen, wird der LaunchedEffect gecancelt.
+    // repeatOnLifecycle hält das Polling an, sobald die App in den Hintergrund
+    // geht (ON_PAUSE), und nimmt es bei ON_RESUME wieder auf — ein nacktes
+    // LaunchedEffect liefe sonst im Hintergrund weiter und feuerte alle 2 s eine
+    // SSH-Verbindung gegen den Host.
+    val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(state.autoRefresh, state.sessionId) {
-        while (state.autoRefresh && state.sessionId.isNotEmpty()) {
-            delay(2000)
-            viewModel.refresh()
+        if (!state.autoRefresh || state.sessionId.isEmpty()) return@LaunchedEffect
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                delay(2000)
+                viewModel.refresh()
+            }
         }
     }
 

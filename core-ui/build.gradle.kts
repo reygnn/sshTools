@@ -13,6 +13,7 @@ android {
     }
     kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21) } }
     buildFeatures { compose = true }
+    testOptions { unitTests.isReturnDefaultValues = true }
 }
 
 dependencies {
@@ -21,4 +22,6 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.material3)
+
+    testImplementation(libs.junit)
 }

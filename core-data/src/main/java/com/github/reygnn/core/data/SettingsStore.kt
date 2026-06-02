@@ -189,7 +189,13 @@ class SettingsStore(private val context: Context) {
     private fun readServers(prefs: Preferences): List<ServerProfile> {
         prefs[KEY_SERVERS]?.let { stored ->
             return runCatching { json.decodeFromString<List<ServerProfile>>(stored) }
-                .getOrDefault(emptyList())
+                .getOrElse { e ->
+                    // A single corrupt entry drops the whole list to empty (app
+                    // then looks "unconfigured"). Log it so the decode failure is
+                    // at least diagnosable instead of silently swallowed.
+                    Log.w(TAG, "Failed to decode stored server list; treating as empty", e)
+                    emptyList()
+                }
         }
         // Legacy-Migration: Lobber/Caster hatten host/port/user/dir als Flachschlüssel.
         val host = prefs[KEY_HOST] ?: return emptyList()

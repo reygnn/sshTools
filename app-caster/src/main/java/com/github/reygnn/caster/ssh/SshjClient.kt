@@ -49,7 +49,7 @@ class SshjClient(
         val sessionName = "claude_$project"
         val full = "cd ${pathQuote(config.workingDir)} && " +
             "screen -dmS ${shellQuote(sessionName)} ${shellQuote("./claude_${project}.sh")} && " +
-            "echo 'screen-session ${sessionName} gestartet'"
+            "echo 'screen session ${sessionName} started'"
         connect().use { ssh ->
             ssh.startSession().use { session ->
                 val cmd = session.exec(full)

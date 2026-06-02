@@ -28,6 +28,12 @@ fun parseScreenSessions(screenLsOutput: String): List<ScreenSessionInfo> =
         if (dot <= 0) return@mapNotNull null
         if (token.substring(0, dot).toIntOrNull() == null) return@mapNotNull null
         val name = token.substring(dot + 1).ifEmpty { return@mapNotNull null }
-        val attached = line.contains("attached", ignoreCase = true)
+        // Check the state suffix only, not the whole line: a session whose name
+        // contains "attached" (e.g. "999.attached-build") must not be reported
+        // as attached when screen marks it (Detached). The state sits after the
+        // tab that follows the token; fall back to the remainder after the
+        // first space when no tab is present.
+        val stateSuffix = if ('\t' in line) line.substringAfter('\t') else line.substringAfter(' ')
+        val attached = stateSuffix.contains("attached", ignoreCase = true)
         ScreenSessionInfo(id = token, name = name, attached = attached)
     }.distinctBy { it.id }.toList()

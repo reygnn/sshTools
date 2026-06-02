@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Hält die App-privaten Dateien aus BEIDEN Backup-Kanälen heraus: Cloud
-  Auto-Backup (Google Drive) und Device-to-Device-Transfer. `allowBackup`
-  alleine deckt nur den Cloud-Pfad; D2D braucht den expliziten Ausschluss.
-  Kritisch, weil in `filesDir` der unverschlüsselte (bzw. Keystore-gewrappte)
-  private SSH-Key sowie Host/User in DataStore liegen — die dürfen das Gerät
-  nie verlassen. Ein frisch wiederhergestelltes Gerät startet bewusst
-  unkonfiguriert; der Key wird neu eingegeben.
+    Belt-and-suspenders on top of android:allowBackup="false": explicitly keep
+    every app data domain out of both transfer paths. The private SSH key
+    (filesDir/id_ed25519) and the DataStore prefs (under the "file" domain) must
+    never leave the device — not via Google Auto Backup, not via Android 12+
+    device-to-device transfer.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <exclude domain="file" path="." />
-        <exclude domain="sharedpref" path="." />
+        <exclude domain="file" />
+        <exclude domain="sharedpref" />
+        <exclude domain="database" />
+        <exclude domain="external" />
     </cloud-backup>
     <device-transfer>
-        <exclude domain="file" path="." />
-        <exclude domain="sharedpref" path="." />
+        <exclude domain="file" />
+        <exclude domain="sharedpref" />
+        <exclude domain="database" />
+        <exclude domain="external" />
     </device-transfer>
 </data-extraction-rules>

@@ -56,6 +56,15 @@ class ScreenSessionsTest {
     }
 
     @Test
+    fun `attached in the name does not make a detached session attached`() {
+        // The state is read from the suffix after the token, so "attached" in
+        // the session name must not flip a (Detached) session to attached.
+        assertTrue(
+            !parseScreenSessions("\t999.attached-build\t(Detached)").single().attached,
+        )
+    }
+
+    @Test
     fun `rejects non-numeric pid prefix`() {
         assertTrue(parseScreenSessions("\tabc.name\t(Detached)").isEmpty())
     }
