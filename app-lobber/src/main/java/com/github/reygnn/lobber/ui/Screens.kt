@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -285,6 +286,7 @@ fun InstallerScreen(
                         finished = s.installFinished,
                         exitCode = s.lastExitCode,
                         onDismiss = viewModel::dismissInstall,
+                        onCancel = viewModel::cancelInstall,
                     )
                     !s.hasLoadedOnce -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
@@ -438,6 +440,7 @@ private fun InstallProgress(
     finished: Boolean,
     exitCode: Int?,
     onDismiss: () -> Unit,
+    onCancel: () -> Unit,
 ) {
     val listState = rememberLazyListState()
     LaunchedEffect(log.size) {
@@ -467,6 +470,13 @@ private fun InstallProgress(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringResource(R.string.done))
+            }
+        } else {
+            // Streaming has no read timeout (an install can run long), so this is
+            // the only way out of a stalled install. See AUDIT P1.
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.cancel))
             }
         }
     }

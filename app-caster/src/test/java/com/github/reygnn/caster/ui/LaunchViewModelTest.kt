@@ -13,6 +13,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -346,5 +347,24 @@ class LaunchViewModelTest {
                 assertFalse(final.configured)
             }
             coVerify(exactly = 0) { client.startStreaming(any()) }
+        }
+
+    @Test
+    fun `cancelLaunch stops a running launch and returns to the list`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            coEvery { client.isSessionRunning("alpha") } returns false
+            // A stream that never completes (no ExitCode) — the stalled-launch case.
+            val gate = MutableSharedFlow<LogLine>(replay = 1)
+            every { client.startStreaming("alpha") } returns gate
+
+            vm.launch("alpha")
+            vm.state.test {
+                while (awaitItem().launching == null) { /* wait until streaming */ }
+                vm.cancelLaunch()
+                val s = expectMostRecentItem()
+                assertNull(s.launching)
+                assertTrue(s.log.isEmpty())
+                cancelAndIgnoreRemainingEvents()
+            }
         }
 }

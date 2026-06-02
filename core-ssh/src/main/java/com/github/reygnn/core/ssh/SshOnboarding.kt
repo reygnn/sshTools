@@ -45,6 +45,10 @@ class SshjOnboarding : SshOnboarding {
     override suspend fun discoverHostKey(host: String, port: Int): String = withContext(Dispatchers.IO) {
         // Connect only far enough to learn the host key — no user auth, no secret.
         val ssh = SSHClient()
+        // A wrong host/port would otherwise stall onboarding for the OS-default
+        // connect duration; mirror connectWithKey's bounds. See AUDIT P3.
+        ssh.connectTimeout = DEFAULT_CONNECT_TIMEOUT_MS
+        ssh.timeout = DEFAULT_READ_TIMEOUT_MS
         var learned: String? = null
         ssh.addHostKeyVerifier(TofuHostKeyVerifier(expectedFingerprint = null) { learned = it })
         try {
@@ -60,6 +64,8 @@ class SshjOnboarding : SshOnboarding {
         password: String, publicKeyLine: String, expectedFingerprint: String,
     ): Unit = withContext(Dispatchers.IO) {
         val ssh = SSHClient()
+        ssh.connectTimeout = DEFAULT_CONNECT_TIMEOUT_MS
+        ssh.timeout = DEFAULT_READ_TIMEOUT_MS
         // Pin the confirmed host key: a different key now (MITM) aborts connect()
         // before authPassword runs, so the password never leaves the device.
         ssh.addHostKeyVerifier(TofuHostKeyVerifier(expectedFingerprint = expectedFingerprint))

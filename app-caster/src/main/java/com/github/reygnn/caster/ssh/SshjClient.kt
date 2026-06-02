@@ -1,5 +1,6 @@
 package com.github.reygnn.caster.ssh
 
+import com.github.reygnn.core.ssh.DEFAULT_READ_TIMEOUT_MS
 import com.github.reygnn.core.ssh.RemoteCommandException
 import com.github.reygnn.core.ssh.connectWithKey
 import com.github.reygnn.core.ssh.isScreenNoSessionsOutput
@@ -22,12 +23,13 @@ class SshjClient(
     private val onLearnHostKey: (String) -> Unit = {},
 ) : SshClient {
 
-    private fun connect() = connectWithKey(
+    private fun connect(readTimeoutMs: Int = DEFAULT_READ_TIMEOUT_MS) = connectWithKey(
         host = config.host,
         port = config.port,
         username = config.username,
         privateKeyPem = config.privateKeyPem,
         knownHostFingerprint = config.knownHostFingerprint,
+        readTimeoutMs = readTimeoutMs,
         onLearnHostKey = onLearnHostKey,
     )
 
@@ -59,7 +61,9 @@ class SshjClient(
         val full = "cd ${pathQuote(config.workingDir)} && " +
             "screen -dmS ${shellQuote(sessionName)} ${shellQuote("./claude_${project}.sh")} && " +
             "echo 'screen session ${sessionName} started'"
-        connect().use { ssh ->
+        // readTimeoutMs = 0: a launch log can be silent for a while; a stalled
+        // stream is recovered by user cancel, not a socket timeout. See AUDIT P1/P2.
+        connect(readTimeoutMs = 0).use { ssh ->
             ssh.startSession().use { session ->
                 val cmd = session.exec(full)
                 coroutineScope {

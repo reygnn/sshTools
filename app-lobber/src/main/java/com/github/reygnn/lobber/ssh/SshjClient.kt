@@ -2,6 +2,7 @@ package com.github.reygnn.lobber.ssh
 
 import com.github.reygnn.core.ssh.LogLine
 import com.github.reygnn.core.ssh.RemoteCommandException
+import com.github.reygnn.core.ssh.DEFAULT_READ_TIMEOUT_MS
 import com.github.reygnn.core.ssh.connectWithKey
 import com.github.reygnn.core.ssh.pathQuote
 import com.github.reygnn.core.ssh.runCommand
@@ -20,12 +21,13 @@ class SshjClient(
     private val onLearnHostKey: (String) -> Unit = {},
 ) : SshClient {
 
-    private fun connect() = connectWithKey(
+    private fun connect(readTimeoutMs: Int = DEFAULT_READ_TIMEOUT_MS) = connectWithKey(
         host = config.host,
         port = config.port,
         username = config.username,
         privateKeyPem = config.privateKeyPem,
         knownHostFingerprint = config.knownHostFingerprint,
+        readTimeoutMs = readTimeoutMs,
         onLearnHostKey = onLearnHostKey,
     )
 
@@ -67,7 +69,10 @@ class SshjClient(
         }
 
     override fun executeStreaming(command: String): Flow<LogLine> = channelFlow {
-        connect().use { ssh ->
+        // readTimeoutMs = 0: an install can legitimately be silent for minutes, so
+        // no SO_TIMEOUT here — a stalled stream is recovered by user cancel (which
+        // cancels this flow and closes the channel). See AUDIT P1/P2.
+        connect(readTimeoutMs = 0).use { ssh ->
             ssh.startSession().use { session ->
                 val cmd = session.exec("cd ${pathQuote(config.workingDir)} && $command")
                 coroutineScope {

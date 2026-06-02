@@ -20,6 +20,7 @@ import com.github.reygnn.core.ssh.shellQuote
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -49,6 +50,9 @@ class InstallViewModel(
 
     val serverSelection: StateFlow<ServerSelection> = settings.serverSelectionState(viewModelScope)
 
+    /** The in-progress streaming install, so it can be cancelled (AUDIT P1). */
+    private var installJob: Job? = null
+
     fun selectServer(index: Int) {
         viewModelScope.launch { settings.setSelectedIndex(index); loadAabs() }
     }
@@ -66,7 +70,7 @@ class InstallViewModel(
     }
 
     fun install(aab: String) {
-        viewModelScope.launch {
+        installJob = viewModelScope.launch {
             val config = settings.resolveConfig() ?: run { _state.update { it.copy(configured = false) }; return@launch }
             // Fail-safe: if the self-install check can't be determined (connection
             // or extraction error), show the confirmation anyway. See AUDIT V9.
@@ -79,7 +83,7 @@ class InstallViewModel(
     fun confirmSelfInstall() {
         val aab = _state.value.pendingSelfInstall ?: return
         _state.update { it.copy(pendingSelfInstall = null) }
-        viewModelScope.launch {
+        installJob = viewModelScope.launch {
             val config = settings.resolveConfig() ?: run { _state.update { it.copy(configured = false) }; return@launch }
             startInstall(aab, config)
         }
@@ -107,6 +111,18 @@ class InstallViewModel(
     fun clearAabs() {
         if (_state.value.installing != null) return
         _state.update { it.copy(aabs = emptyList(), hasLoadedOnce = false) }
+    }
+
+    /**
+     * Cancel an in-progress install. The streaming command has no read timeout (an
+     * install can run long), so this is the only recovery from a stalled stream:
+     * cancelling the collect job closes the channel, which gives the blocked
+     * readers EOF and tears the connection down (the V5 teardown). See AUDIT P1.
+     */
+    fun cancelInstall() {
+        if (_state.value.installing == null) return
+        installJob?.cancel()
+        _state.update { it.copy(installing = null, log = emptyList(), lastExitCode = null) }
     }
 
     fun dismissInstall() = _state.update { it.copy(installing = null, log = emptyList(), lastExitCode = null) }

@@ -105,6 +105,7 @@ fun LauncherScreen(
                         finished = state.launchFinished,
                         exitCode = state.lastExitCode,
                         onDismiss = viewModel::dismissLaunch,
+                        onCancel = viewModel::cancelLaunch,
                     )
 
                     !state.hasLoadedOnce && state.loading ->
@@ -200,6 +201,7 @@ private fun LaunchProgress(
     finished: Boolean,
     exitCode: Int?,
     onDismiss: () -> Unit,
+    onCancel: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text(
@@ -245,6 +247,12 @@ private fun LaunchProgress(
                 horizontalArrangement = Arrangement.Center,
             ) {
                 CircularProgressIndicator(Modifier.size(24.dp))
+            }
+            Spacer(Modifier.size(12.dp))
+            // Streaming has no read timeout (a launch can run long), so this is the
+            // only way out of a stalled launch. See AUDIT P1.
+            OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.cancel))
             }
         }
     }

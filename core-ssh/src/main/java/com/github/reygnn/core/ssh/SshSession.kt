@@ -12,6 +12,20 @@ const val DEFAULT_MAX_OUTPUT_BYTES: Int = 1 shl 20
 /** Default connect timeout for a one-shot SSH operation. */
 const val DEFAULT_CONNECT_TIMEOUT_MS: Int = 10_000
 
+/**
+ * Default socket read timeout (SO_TIMEOUT) for a one-shot SSH operation. Bounds a
+ * single blocking read so a host that finishes the TCP connect but then stalls —
+ * no KEX/auth progress, or a command that holds the channel open without ever
+ * sending EOF — eventually throws instead of hanging forever. It is **per read**,
+ * not total: a long command that keeps producing output never trips it; only a
+ * *silent stall* does. Crucially this is what actually bounds [runCommand], whose
+ * `cmd.join(timeout)` is reached only *after* the (otherwise unbounded) stdout/
+ * stderr drain. The streaming path passes 0 (no read timeout): an install/launch
+ * can legitimately be quiet for minutes, so it relies on user cancellation
+ * instead. See AUDIT P2.
+ */
+const val DEFAULT_READ_TIMEOUT_MS: Int = 30_000
+
 /** Result of a one-shot remote command: [exitStatus] is -1 when sshj reports none. */
 data class CommandResult(val exitStatus: Int, val stdout: String, val stderr: String)
 
@@ -42,10 +56,14 @@ fun connectWithKey(
     privateKeyPem: String,
     knownHostFingerprint: String?,
     connectTimeoutMs: Int = DEFAULT_CONNECT_TIMEOUT_MS,
+    readTimeoutMs: Int = DEFAULT_READ_TIMEOUT_MS,
     onLearnHostKey: (String) -> Unit = {},
 ): SSHClient {
     val ssh = SSHClient()
     ssh.connectTimeout = connectTimeoutMs
+    // SO_TIMEOUT: bounds a stalled read (handshake/auth/command drain). 0 = no
+    // read timeout, used by the streaming path (long quiet commands). See AUDIT P2.
+    ssh.timeout = readTimeoutMs
     ssh.addHostKeyVerifier(TofuHostKeyVerifier(knownHostFingerprint, onLearnHostKey))
     ssh.connect(host, port)
     ssh.authPublickey(username, BcOpenSshKeyProvider(privateKeyPem))
@@ -57,7 +75,10 @@ fun connectWithKey(
  * output. stdout *and* stderr are drained concurrently (each capped at
  * [maxOutputBytes]) and both reads are awaited **before** [cmd.join] — Hard
  * Rule 3: a full channel buffer must never be able to deadlock the command.
- * The join is bounded by [timeoutSeconds].
+ * The join is bounded by [timeoutSeconds] — but note that is reached only *after*
+ * the drain returns; a host that stalls mid-read (no more bytes, no EOF) is
+ * bounded instead by the connection's SO_TIMEOUT ([DEFAULT_READ_TIMEOUT_MS]),
+ * which makes `await()` throw. See AUDIT P2.
  *
  * Note: [readCapped] closes its stream once [maxOutputBytes] is reached, so a
  * command exceeding the cap has its output *truncated* (not an error) and the

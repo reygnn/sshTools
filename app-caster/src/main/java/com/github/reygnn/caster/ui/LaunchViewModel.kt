@@ -19,6 +19,7 @@ import com.github.reygnn.core.ui.toUiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -77,6 +78,9 @@ class LaunchViewModel(
 
     val serverSelection: StateFlow<ServerSelection> = settings.serverSelectionState(viewModelScope)
 
+    /** The in-progress streaming launch, so it can be cancelled (AUDIT P1). */
+    private var launchJob: Job? = null
+
     /** Switch the active server profile, then refresh the project list for it. */
     fun selectServer(index: Int) {
         viewModelScope.launch {
@@ -120,7 +124,7 @@ class LaunchViewModel(
      * Bestätigungsdialog ausgelöst (analog zu Lobbers Self-Install-Check).
      */
     fun launch(project: String) {
-        viewModelScope.launch {
+        launchJob = viewModelScope.launch {
             val config = settings.resolveConfig() ?: run {
                 _state.update { it.copy(configured = false) }
                 return@launch
@@ -140,7 +144,7 @@ class LaunchViewModel(
     fun confirmRestart() {
         val project = _state.value.pendingRestart ?: return
         _state.update { it.copy(pendingRestart = null) }
-        viewModelScope.launch {
+        launchJob = viewModelScope.launch {
             val config = settings.resolveConfig() ?: run {
                 _state.update { it.copy(configured = false) }
                 return@launch
@@ -229,6 +233,18 @@ class LaunchViewModel(
      * `LifecycleResumeEffect` feuert hier nicht, weil die Activity nie
      * pausierte.
      */
+    /**
+     * Cancel an in-progress launch. The streaming command has no read timeout, so
+     * this is the only recovery from a stalled stream: cancelling the collect job
+     * closes the channel → blocked readers get EOF → the connection is torn down
+     * (V5 teardown). See AUDIT P1.
+     */
+    fun cancelLaunch() {
+        if (_state.value.launching == null) return
+        launchJob?.cancel()
+        _state.update { it.copy(launching = null, log = emptyList(), lastExitCode = null) }
+    }
+
     fun dismissLaunch() {
         _state.update {
             it.copy(launching = null, log = emptyList(), lastExitCode = null)

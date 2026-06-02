@@ -325,4 +325,22 @@ class InstallViewModelTest {
             assertEquals(UiText.Literal("ssh closed"), final.error)
         }
     }
+
+    @Test
+    fun `cancelInstall stops a running install and returns to the list`() = runTest(mainDispatcherRule.dispatcher) {
+        coEvery { client.aabContainsPackage(any(), any()) } returns false
+        // A stream that never completes (no ExitCode) — the stalled-install case.
+        val gate = MutableSharedFlow<LogLine>(replay = 1)
+        every { client.executeStreaming(any()) } returns gate
+
+        vm.install("app-release.aab")
+        vm.state.test {
+            while (awaitItem().installing == null) { /* wait until streaming */ }
+            vm.cancelInstall()
+            val s = expectMostRecentItem()
+            assertNull(s.installing)
+            assertTrue(s.log.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }
