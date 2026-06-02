@@ -8,13 +8,10 @@
 
     <!-- Common actions -->
     <string name="back">Back</string>
-    <string name="cancel">Cancel</string>
     <string name="save">Save</string>
     <string name="saving">Saving…</string>
     <string name="done">Done</string>
     <string name="send">Send</string>
-    <string name="action_show">Show</string>
-    <string name="action_hide">Hide</string>
 
     <!-- ViewModel-emitted errors -->
     <string name="error_fill_all_fields">Fill in all fields</string>
@@ -24,21 +21,10 @@
     <string name="error_key_required">Paste the SSH key first.</string>
     <string name="error_invalid_port">Port must be between 1 and 65535</string>
 
-    <!-- Server profiles -->
+    <!-- Server profiles (server-name/host/port/user/key labels come from core-ui) -->
     <string name="settings_servers">Servers</string>
     <string name="settings_key">SSH key (shared across servers)</string>
-    <string name="field_server_name">Name (e.g. Tailscale, LAN)</string>
     <string name="add_server">Add server</string>
-    <string name="edit_server">Edit</string>
-    <string name="delete_server">Delete</string>
-    <string name="save_server">Save server</string>
-    <string name="server_picker_label">Server</string>
-
-    <!-- Form fields -->
-    <string name="field_host">Host</string>
-    <string name="field_port">Port</string>
-    <string name="field_user">User</string>
-    <string name="field_private_key">id_ed25519 (PEM, full block)</string>
 
     <!-- Sessions list -->
     <string name="refresh_sessions">Reload session list</string>

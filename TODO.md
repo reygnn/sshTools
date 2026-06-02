@@ -66,32 +66,28 @@ Legende: 🟢 risikolos · 🟡 mittel · 🔴 größer (eigener Branch).
 
 ## Phase 4 — Geteilte UI nach `core-ui`
 
-- [ ] **B1 · Settings-/Server-UI nach core-ui** 🔴
-  Stateless Composables in `core-ui` (reine Daten + Callbacks, **keine**
-  VM-Kopplung): `ServerRow`, `ServerEditor`, `ServerPicker`, `StatusDot`,
-  `stringRes`-Helfer und das maskierte Key-Feld.
-  - Gemeinsames `ServerForm` / Callback-Vertrag, der `workingDir` optional
-    behandelt (Prodder hat keins).
-  - Pro App bleibt nur das App-Spezifische (Lobber: ADB-Block).
-  *Akzeptanz:* `ServerRow`/`ServerEditor`/`ServerPicker`/`StatusDot` existieren
-  genau einmal; Caster/Prodder-`Screens.kt` schrumpfen deutlich.
+- [x] **B1 · Settings-/Server-UI nach core-ui** 🔴 (erledigt 2026-06-02)
+  Stateless Composables in `core-ui` (`SettingsComponents.kt`): `ServerRow`,
+  `ServerEditor` (workingDir optional via nullable Label), `ServerPicker`,
+  `StatusDot`, `KeyField` — reine Daten + Callbacks, keine VM-Kopplung. Strings
+  liegen als `cu_…` in core-ui (EN+DE). Die drei Apps rufen sie; ihre lokalen
+  Kopien sind gelöscht. Die App-Screens bleiben Kompositions-Wurzel (Lobber
+  behält ADB-Block/Onboarding). *Akzeptanz erfüllt.*
 
 - [x] **A1 · Key-Sichtbarkeits-Toggle vereinheitlichen** 🟢 (erledigt 2026-06-02)
   Show/Hide-Toggle direkt in Caster + Prodder ergänzt (wie Lobber); geht bei
   B1 in das geteilte Key-Feld auf. *Akzeptanz erfüllt:* alle drei Apps haben
   denselben Toggle (Strings `action_show`/`action_hide`).
 
-- [ ] **A6 · Log-Rendering nach core-ui** 🟡
-  Eine `LogLine`-Composable in `core-ui` (eine `exit`-Darstellung, ein
-  Scroll-Verhalten). Lobber (Install/ADB) und Caster (Launch) nutzen sie.
-  *Akzeptanz:* `LogLine`-Rendering existiert einmal.
+- [x] **A6 · Log-Rendering nach core-ui** 🟡 (erledigt 2026-06-02)
+  `LogLineRow(line)` in `core-ui/LogView.kt` (eine `exit`-Darstellung). Lobber
+  (Install + ADB-Log) und Caster (Launch) nutzen sie; die App-Kopien sind weg.
+  core-ui hängt dafür an core-ssh (nur `LogLine`). *Akzeptanz erfüllt.*
 
-- [ ] **A8 · DE-Lokalisierung nachziehen** 🟡
-  `CLAUDE.md` verlangt EN + DE pro App, aber **keine** App hat `values-de/`.
-  Pro App ein `res/values-de/strings.xml` ergänzen; idealerweise zusammen mit
-  B1 die geteilten Strings nach `core-ui` ziehen, damit EN/DE nur einmal
-  gepflegt werden. *Akzeptanz:* jede App rendert auf einem DE-Gerät deutsch;
-  keine fehlenden Übersetzungen.
+- [x] **A8 · DE-Lokalisierung nachziehen** 🟡 (erledigt 2026-06-02)
+  `values-de/strings.xml` für alle drei Apps + core-ui (geteilte `cu_`-Strings).
+  Geteilte UI-Strings werden dank B1 nur einmal (in core-ui) gepflegt.
+  *Akzeptanz erfüllt:* alle drei Apps rendern auf einem DE-Gerät deutsch.
 
 - [x] **A5 · Fingerprint-Preserve-Logik vereinheitlichen** 🟢 (erledigt 2026-06-02)
   Eine Helper-Funktion (z. B. in `core-data` an `ServerProfile`): „Pin behalten,

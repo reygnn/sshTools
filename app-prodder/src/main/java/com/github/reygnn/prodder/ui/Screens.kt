@@ -2,8 +2,12 @@ package com.github.reygnn.prodder.ui
 
 import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.core.ui.resolve
+import com.github.reygnn.core.ui.KeyField
+import com.github.reygnn.core.ui.ServerEditor
+import com.github.reygnn.core.ui.ServerPicker
+import com.github.reygnn.core.ui.ServerRow
+import com.github.reygnn.core.ui.StatusDot
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -13,28 +17,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -54,16 +50,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.reygnn.prodder.R
-import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.prodder.ssh.ScreenSession
 import kotlinx.coroutines.delay
 
@@ -99,7 +90,7 @@ fun SessionsScreen(
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (sel.servers.size > 1) {
                 ServerPicker(
-                    servers = sel.servers,
+                    serverNames = sel.servers.map { it.name },
                     selectedIndex = sel.selectedIndex,
                     onSelect = viewModel::selectServer,
                 )
@@ -166,16 +157,6 @@ private fun SessionRow(session: ScreenSession, onClick: () -> Unit) {
             color = MaterialTheme.colorScheme.outline,
         )
     }
-}
-
-@Composable
-private fun StatusDot(active: Boolean) {
-    // Documented MATERIAL3RULES A5 exception (see B2): "active" is a fixed
-    // semantic green, not a theme role. The theme is dynamic-only (Material
-    // You), so there is no static scheme to host a named constant, and a
-    // wallpaper-derived `tertiary` would not reliably read as green/active.
-    val color = if (active) Color(0xFF2E7D32) else MaterialTheme.colorScheme.outlineVariant
-    Box(Modifier.size(12.dp).clip(CircleShape).background(color))
 }
 
 /* ------------------------------------------------------------------ */
@@ -344,7 +325,8 @@ fun SettingsScreen(
             Text(stringRes(R.string.settings_servers), style = MaterialTheme.typography.titleMedium)
             s.servers.forEachIndexed { i, server ->
                 ServerRow(
-                    server = server,
+                    name = server.name,
+                    host = server.host,
                     onEdit = { viewModel.editServer(i) },
                     onDelete = { viewModel.deleteServer(i) },
                 )
@@ -354,26 +336,29 @@ fun SettingsScreen(
                     Text(stringRes(R.string.add_server))
                 }
             } else {
-                ServerEditor(form = s.editing!!, viewModel = viewModel)
+                val form = s.editing!!
+                ServerEditor(
+                    name = form.name,
+                    host = form.host,
+                    port = form.port,
+                    username = form.username,
+                    // Prodder profiles have no working dir.
+                    workingDir = "",
+                    workingDirLabel = null,
+                    onName = viewModel::onEditName,
+                    onHost = viewModel::onEditHost,
+                    onPort = viewModel::onEditPort,
+                    onUsername = viewModel::onEditUsername,
+                    onWorkingDir = {},
+                    onSave = viewModel::saveServer,
+                    onCancel = viewModel::cancelEdit,
+                )
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             Text(stringRes(R.string.settings_key), style = MaterialTheme.typography.titleMedium)
-            var keyVisible by remember { mutableStateOf(false) }
-            OutlinedTextField(
-                value = s.privateKeyPem, onValueChange = viewModel::onPrivateKey,
-                label = { Text(stringRes(R.string.field_private_key)) },
-                // Masked by default against shoulder-surfing; a toggle reveals it
-                // for paste/verify during manual setup.
-                visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    TextButton(onClick = { keyVisible = !keyVisible }) {
-                        Text(stringRes(if (keyVisible) R.string.action_hide else R.string.action_show))
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(160.dp),
-            )
+            KeyField(value = s.privateKeyPem, onValueChange = viewModel::onPrivateKey)
             s.error?.let { err ->
                 Text(err.resolve(), color = MaterialTheme.colorScheme.error)
             }
@@ -383,105 +368,6 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringRes(if (s.saving) R.string.saving else R.string.done))
-            }
-        }
-    }
-}
-
-@Composable
-private fun ServerRow(server: ServerProfile, onEdit: () -> Unit, onDelete: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(server.name)
-                Text(
-                    text = server.host,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            TextButton(onClick = onEdit) { Text(stringRes(R.string.edit_server)) }
-            TextButton(onClick = onDelete) { Text(stringRes(R.string.delete_server)) }
-        }
-    }
-}
-
-@Composable
-private fun ServerEditor(form: ServerForm, viewModel: SettingsViewModel) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            OutlinedTextField(
-                value = form.name, onValueChange = viewModel::onEditName,
-                label = { Text(stringRes(R.string.field_server_name)) }, singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = form.host, onValueChange = viewModel::onEditHost,
-                label = { Text(stringRes(R.string.field_host)) }, singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = form.port, onValueChange = viewModel::onEditPort,
-                label = { Text(stringRes(R.string.field_port)) }, singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = form.username, onValueChange = viewModel::onEditUsername,
-                label = { Text(stringRes(R.string.field_user)) }, singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = viewModel::saveServer, modifier = Modifier.weight(1f)) {
-                    Text(stringRes(R.string.save_server))
-                }
-                TextButton(onClick = viewModel::cancelEdit, modifier = Modifier.weight(1f)) {
-                    Text(stringRes(R.string.cancel))
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ServerPicker(
-    servers: List<ServerProfile>,
-    selectedIndex: Int,
-    onSelect: (Int) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val selected = servers.getOrNull(selectedIndex)
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        OutlinedTextField(
-            value = selected?.name ?: "",
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(stringRes(R.string.server_picker_label)) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                .fillMaxWidth(),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            servers.forEachIndexed { i, server ->
-                DropdownMenuItem(
-                    text = { Text(server.name) },
-                    onClick = {
-                        onSelect(i)
-                        expanded = false
-                    },
-                )
             }
         }
     }

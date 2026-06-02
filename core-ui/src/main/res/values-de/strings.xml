@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cu_edit">Bearbeiten</string>
+    <string name="cu_delete">Löschen</string>
+    <string name="cu_save_server">Server speichern</string>
+    <string name="cu_cancel">Abbrechen</string>
+    <string name="cu_server_picker_label">Server</string>
+    <string name="cu_field_server_name">Name (z. B. Tailscale, LAN)</string>
+    <string name="cu_field_host">Host</string>
+    <string name="cu_field_port">Port</string>
+    <string name="cu_field_user">Benutzer</string>
+    <string name="cu_field_private_key">id_ed25519 (PEM, vollständiger Block)</string>
+    <string name="cu_action_show">Anzeigen</string>
+    <string name="cu_action_hide">Verbergen</string>
+    <string name="cu_exit_unknown">unbekannt</string>
+</resources>

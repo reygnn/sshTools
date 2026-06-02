@@ -16,6 +16,8 @@ android {
 }
 
 dependencies {
+    implementation(project(":core-ssh")) // LogLine, rendered by the shared LogLineRow
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.material3)

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared Settings / server-editor / log UI, rendered by core-ui composables.
+         Prefixed cu_ so they never shadow an app's own resources. -->
+    <string name="cu_edit">Edit</string>
+    <string name="cu_delete">Delete</string>
+    <string name="cu_save_server">Save server</string>
+    <string name="cu_cancel">Cancel</string>
+    <string name="cu_server_picker_label">Server</string>
+    <string name="cu_field_server_name">Name (e.g. Tailscale, LAN)</string>
+    <string name="cu_field_host">Host</string>
+    <string name="cu_field_port">Port</string>
+    <string name="cu_field_user">User</string>
+    <string name="cu_field_private_key">id_ed25519 (PEM, full block)</string>
+    <string name="cu_action_show">Show</string>
+    <string name="cu_action_hide">Hide</string>
+    <string name="cu_exit_unknown">unknown</string>
+</resources>

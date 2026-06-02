@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Prodder</string>
+
+    <!-- TopAppBar titles -->
+    <string name="settings_title">Einstellungen</string>
+    <string name="sessions_title">Prodder %1$s</string>
+
+    <!-- Common actions -->
+    <string name="back">Zurück</string>
+    <string name="save">Speichern</string>
+    <string name="saving">Speichern…</string>
+    <string name="done">Fertig</string>
+    <string name="send">Senden</string>
+
+    <!-- ViewModel-emitted errors -->
+    <string name="error_fill_all_fields">Bitte alle Felder ausfüllen</string>
+    <string name="error_unknown">Unbekannter Fehler</string>
+    <string name="error_send_failed">Eingabe konnte nicht an die Session gesendet werden</string>
+    <string name="error_need_server">Mindestens einen Server hinzufügen.</string>
+    <string name="error_key_required">Zuerst den SSH-Key einfügen.</string>
+    <string name="error_invalid_port">Port muss zwischen 1 und 65535 liegen</string>
+
+    <!-- Server profiles (server-name/host/port/user/key labels come from core-ui) -->
+    <string name="settings_servers">Server</string>
+    <string name="settings_key">SSH-Schlüssel (für alle Server)</string>
+    <string name="add_server">Server hinzufügen</string>
+
+    <!-- Sessions list -->
+    <string name="refresh_sessions">Session-Liste neu laden</string>
+    <string name="open_settings">Einstellungen öffnen</string>
+    <string name="no_sessions_found">Keine screen-Sessions auf diesem Host.</string>
+    <string name="status_attached">verbunden</string>
+    <string name="status_detached">getrennt</string>
+
+    <!-- Session detail -->
+    <string name="refresh_screen">Schirm aktualisieren</string>
+    <string name="auto_refresh">Auto</string>
+    <string name="empty_screen">(leerer Schirm)</string>
+    <string name="input_label">Eingabe…</string>
+    <string name="key_enter">⏎ Enter</string>
+    <string name="key_ctrl_c">Strg-C</string>
+</resources>

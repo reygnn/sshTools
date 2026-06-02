@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Lobber</string>
+
+    <!-- TopAppBar titles -->
+    <string name="settings_title">Einstellungen</string>
+    <string name="installer_title">Lobber %1$s</string>
+    <string name="onboarding_title">Ersteinrichtung</string>
+
+    <!-- Common actions -->
+    <string name="back">Zurück</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="done">Fertig</string>
+    <string name="install">Installieren</string>
+    <string name="save">Speichern</string>
+    <string name="saving">Speichern…</string>
+
+    <!-- Self-install confirmation -->
+    <string name="self_install_title">Lobber über sich selbst installieren?</string>
+    <string name="self_install_body">%1$s sieht nach einem Lobber-Build aus. Die Installation beendet den laufenden Lobber-Prozess mitten im Stream — das Ende des Install-Logs siehst du nicht. Fortfahren?</string>
+    <string name="self_install_continue">Fortfahren</string>
+
+    <!-- ADB-not-ready gate -->
+    <string name="adb_not_ready_title">ADB nicht aktiv</string>
+    <string name="adb_not_ready_body">Aktiviere USB- oder WLAN-Debugging in den Entwickleroptionen des Geräts. Ohne ADB kann der Build-Host nicht auf dieses Telefon pushen.</string>
+    <string name="adb_not_ready_open">Entwickleroptionen öffnen</string>
+
+    <!-- ViewModel-emitted errors -->
+    <string name="error_fill_all_fields">Bitte alle Felder ausfüllen</string>
+    <string name="error_unknown">Unbekannter Fehler</string>
+    <string name="error_no_message">(keine Meldung)</string>
+    <string name="error_adb_fields">Telefon-IP und aktuellen Port eingeben.</string>
+    <string name="error_not_configured">Zuerst die SSH-Verbindung konfigurieren und speichern.</string>
+    <string name="error_need_server">Mindestens einen Server hinzufügen.</string>
+    <string name="error_invalid_port">Port muss zwischen 1 und 65535 liegen.</string>
+    <string name="error_key_required">Zuerst den SSH-Key einfügen.</string>
+
+    <!-- Server profiles (server-name/edit/delete/save/picker labels come from core-ui) -->
+    <string name="settings_servers">Server</string>
+    <string name="settings_key">SSH-Schlüssel (für alle Server)</string>
+    <string name="add_server">Server hinzufügen</string>
+
+    <!-- ADB reconnect (Tailscale) -->
+    <string name="adb_reconnect_title">ADB-Reconnect (Tailscale)</string>
+    <string name="adb_reconnect_hint">Führt adb connect + adb tcpip 5555 auf dem Build-Host aus. Trage den aktuellen Port aus dem WLAN-Debugging-Bildschirm des Telefons ein — er ändert sich nach jedem Neustart.</string>
+    <string name="field_adb_host">Telefon-ADB-IP (Tailscale)</string>
+    <string name="field_adb_port">Aktueller Port (vom Telefon-Bildschirm)</string>
+    <string name="adb_reconnect">ADB neu verbinden</string>
+    <string name="adb_reconnecting">Verbinde neu…</string>
+    <string name="adb_clear_log">Log leeren</string>
+
+    <!-- Form fields -->
+    <string name="field_host">Host</string>
+    <string name="field_port">Port</string>
+    <string name="field_user">Benutzer</string>
+    <string name="field_password_once">Passwort (einmalig)</string>
+    <string name="field_working_dir">Arbeitsverzeichnis (mit install-aab.sh)</string>
+
+    <!-- Installer screen -->
+    <string name="refresh_aabs">AAB-Liste neu laden</string>
+    <string name="open_settings">Einstellungen öffnen</string>
+    <string name="no_aabs_found">Keine .aab im Arbeitsverzeichnis gefunden.</string>
+    <string name="installing_aab">Installiere %1$s</string>
+    <string name="adb_status_active">ADB-Debugging ist aktiv</string>
+    <string name="adb_status_inactive">ADB-Debugging ist aus — Installationen vom Build-Host erreichen dieses Telefon nicht</string>
+
+    <!-- Onboarding screen -->
+    <string name="onboarding_intro">Lobber erzeugt einen Schlüssel auf dem Telefon und überträgt den öffentlichen Schlüssel auf den Build-Host. Dafür brauchst du nur einmal Benutzername und Passwort.</string>
+    <string name="onboarding_start">Auto-Einrichtung starten</string>
+    <string name="onboarding_running">Läuft…</string>
+    <string name="onboarding_have_key">Ich habe bereits einen Schlüssel</string>
+
+    <!-- Onboarding step labels -->
+    <string name="step_generating">Erzeuge Ed25519-Schlüssel…</string>
+    <string name="step_pushing">Übertrage öffentlichen Schlüssel auf den Build-Host…</string>
+    <string name="step_verifying">Prüfe Public-Key-Login…</string>
+    <string name="step_saving">Speichere Konfiguration…</string>
+    <string name="step_done">Fertig</string>
+</resources>

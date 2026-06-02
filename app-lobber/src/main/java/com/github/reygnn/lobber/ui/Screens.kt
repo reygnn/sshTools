@@ -2,6 +2,11 @@ package com.github.reygnn.lobber.ui
 
 import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.core.ui.resolve
+import com.github.reygnn.core.ui.KeyField
+import com.github.reygnn.core.ui.LogLineRow
+import com.github.reygnn.core.ui.ServerEditor
+import com.github.reygnn.core.ui.ServerPicker
+import com.github.reygnn.core.ui.ServerRow
 
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -34,11 +39,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,20 +58,16 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.reygnn.lobber.BuildConfig
 import com.github.reygnn.lobber.R
-import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.lobber.ssh.AabEntry
 import com.github.reygnn.core.ssh.LogLine
 import java.time.Instant
@@ -116,7 +113,8 @@ fun SettingsScreen(
             )
             s.servers.forEachIndexed { i, server ->
                 ServerRow(
-                    server = server,
+                    name = server.name,
+                    host = server.host,
                     onEdit = { viewModel.editServer(i) },
                     onDelete = { viewModel.deleteServer(i) },
                 )
@@ -126,7 +124,22 @@ fun SettingsScreen(
                     Text(stringResource(R.string.add_server))
                 }
             } else {
-                ServerEditor(form = s.editing!!, viewModel = viewModel)
+                val form = s.editing!!
+                ServerEditor(
+                    name = form.name,
+                    host = form.host,
+                    port = form.port,
+                    username = form.username,
+                    workingDir = form.workingDir,
+                    workingDirLabel = stringResource(R.string.field_working_dir),
+                    onName = viewModel::onEditName,
+                    onHost = viewModel::onEditHost,
+                    onPort = viewModel::onEditPort,
+                    onUsername = viewModel::onEditUsername,
+                    onWorkingDir = viewModel::onEditWorkingDir,
+                    onSave = viewModel::saveServer,
+                    onCancel = viewModel::cancelEdit,
+                )
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -136,22 +149,7 @@ fun SettingsScreen(
                 stringResource(R.string.settings_key),
                 style = MaterialTheme.typography.titleMedium,
             )
-            var keyVisible by remember { mutableStateOf(false) }
-            OutlinedTextField(
-                value = s.privateKeyPem, onValueChange = viewModel::onPrivateKey,
-                label = { Text(stringResource(R.string.field_private_key)) },
-                // The private key is masked by default so it isn't shoulder-surfed;
-                // a toggle reveals it for paste/verify in manual setup.
-                visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    TextButton(onClick = { keyVisible = !keyVisible }) {
-                        Text(stringResource(if (keyVisible) R.string.action_hide else R.string.action_show))
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp),
-            )
+            KeyField(value = s.privateKeyPem, onValueChange = viewModel::onPrivateKey)
 
             s.error?.let {
                 Text(it.resolve(), color = MaterialTheme.colorScheme.error)
@@ -225,110 +223,6 @@ private fun AdbLogCard(log: List<LogLine>, onClear: () -> Unit) {
     }
 }
 
-@Composable
-private fun ServerRow(server: ServerProfile, onEdit: () -> Unit, onDelete: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(server.name)
-                Text(
-                    text = server.host,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            TextButton(onClick = onEdit) { Text(stringResource(R.string.edit_server)) }
-            TextButton(onClick = onDelete) { Text(stringResource(R.string.delete_server)) }
-        }
-    }
-}
-
-@Composable
-private fun ServerEditor(form: ServerForm, viewModel: SettingsViewModel) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            OutlinedTextField(
-                value = form.name, onValueChange = viewModel::onEditName,
-                label = { Text(stringResource(R.string.field_server_name)) }, singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = form.host, onValueChange = viewModel::onEditHost,
-                label = { Text(stringResource(R.string.field_host)) }, singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = form.port, onValueChange = viewModel::onEditPort,
-                label = { Text(stringResource(R.string.field_port)) }, singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = form.username, onValueChange = viewModel::onEditUsername,
-                label = { Text(stringResource(R.string.field_user)) }, singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = form.workingDir, onValueChange = viewModel::onEditWorkingDir,
-                label = { Text(stringResource(R.string.field_working_dir)) }, singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = viewModel::saveServer, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.save_server))
-                }
-                TextButton(onClick = viewModel::cancelEdit, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ServerPicker(
-    servers: List<ServerProfile>,
-    selectedIndex: Int,
-    onSelect: (Int) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val selected = servers.getOrNull(selectedIndex)
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        OutlinedTextField(
-            value = selected?.name ?: "",
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(stringResource(R.string.server_picker_label)) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                .fillMaxWidth(),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            servers.forEachIndexed { i, server ->
-                DropdownMenuItem(
-                    text = { Text(server.name) },
-                    onClick = {
-                        onSelect(i)
-                        expanded = false
-                    },
-                )
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InstallerScreen(
@@ -373,7 +267,7 @@ fun InstallerScreen(
             // kein Install läuft.
             if (sel.servers.size > 1 && s.installing == null) {
                 ServerPicker(
-                    servers = sel.servers,
+                    serverNames = sel.servers.map { it.name },
                     selectedIndex = sel.selectedIndex,
                     onSelect = viewModel::selectServer,
                 )
@@ -552,28 +446,6 @@ private fun InstallProgress(
             }
         }
     }
-}
-
-/** Eine Log-Zeile (stdout/stderr/exit) in Monospace — geteilt von Install-
- *  Progress und ADB-Reconnect-Log. */
-@Composable
-private fun LogLineRow(line: LogLine) {
-    val unknownLabel = stringResource(R.string.exit_unknown)
-    val (text, color) = when (line) {
-        is LogLine.Stdout   -> line.text to Color.Unspecified
-        is LogLine.Stderr   -> line.text to MaterialTheme.colorScheme.error
-        is LogLine.ExitCode -> when (line.code) {
-            null -> "─── exit $unknownLabel ───" to MaterialTheme.colorScheme.onSurfaceVariant
-            0    -> "─── exit 0 ───" to MaterialTheme.colorScheme.primary
-            else -> "─── exit ${line.code} ───" to MaterialTheme.colorScheme.error
-        }
-    }
-    Text(
-        text = text,
-        color = color,
-        fontFamily = FontFamily.Monospace,
-        style = MaterialTheme.typography.bodySmall,
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

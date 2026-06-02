@@ -35,15 +35,10 @@
     <string name="error_invalid_port">Port must be between 1 and 65535.</string>
     <string name="error_key_required">Paste the SSH key first.</string>
 
-    <!-- Server profiles -->
+    <!-- Server profiles (server-name/edit/delete/save/picker labels come from core-ui) -->
     <string name="settings_servers">Servers</string>
     <string name="settings_key">SSH key (shared across servers)</string>
-    <string name="field_server_name">Name (e.g. Tailscale, LAN)</string>
     <string name="add_server">Add server</string>
-    <string name="edit_server">Edit</string>
-    <string name="delete_server">Delete</string>
-    <string name="save_server">Save server</string>
-    <string name="server_picker_label">Server</string>
 
     <!-- ADB reconnect (Tailscale) -->
     <string name="adb_reconnect_title">ADB reconnect (Tailscale)</string>
@@ -60,16 +55,12 @@
     <string name="field_user">User</string>
     <string name="field_password_once">Password (one time)</string>
     <string name="field_working_dir">Working dir (with install-aab.sh)</string>
-    <string name="field_private_key">id_ed25519 (PEM, full block)</string>
-    <string name="action_show">Show</string>
-    <string name="action_hide">Hide</string>
 
     <!-- Installer screen -->
     <string name="refresh_aabs">Reload AAB list</string>
     <string name="open_settings">Open settings</string>
     <string name="no_aabs_found">No .aab found in working dir.</string>
     <string name="installing_aab">Installing %1$s</string>
-    <string name="exit_unknown">unknown</string>
     <string name="adb_status_active">ADB debugging is active</string>
     <string name="adb_status_inactive">ADB debugging is off — installs from the build host won\'t reach this phone</string>
 

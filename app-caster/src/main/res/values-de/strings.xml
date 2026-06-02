@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Caster</string>
+
+    <!-- TopAppBar titles -->
+    <string name="settings_title">Einstellungen</string>
+    <string name="launcher_title">Caster %1$s</string>
+
+    <!-- Common actions -->
+    <string name="back">Zurück</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="save">Speichern</string>
+    <string name="saving">Speichern…</string>
+    <string name="done">Fertig</string>
+    <string name="start">Start</string>
+    <string name="stop">Stopp</string>
+    <string name="restart">Neu starten</string>
+
+    <!-- Restart confirmation (session already running) -->
+    <string name="restart_title">Session läuft bereits</string>
+    <string name="restart_body">Eine Claude-Session für %1$s läuft bereits. Neu starten? Die aktuelle Session wird zuerst beendet.</string>
+
+    <!-- ViewModel-emitted errors -->
+    <string name="error_fill_all_fields">Bitte alle Felder ausfüllen</string>
+    <string name="error_unknown">Unbekannter Fehler</string>
+    <string name="error_stop_failed">Session konnte nicht gestoppt werden</string>
+    <string name="error_need_server">Mindestens einen Server hinzufügen.</string>
+    <string name="error_key_required">Zuerst den SSH-Key einfügen.</string>
+    <string name="error_invalid_port">Port muss zwischen 1 und 65535 liegen.</string>
+
+    <!-- Server profiles -->
+    <string name="settings_servers">Server</string>
+    <string name="settings_key">SSH-Schlüssel (für alle Server)</string>
+    <string name="add_server">Server hinzufügen</string>
+
+    <!-- Form fields (server-name/host/port/user/key labels come from core-ui) -->
+    <string name="field_working_dir">Arbeitsverzeichnis (mit claude_*.sh)</string>
+
+    <!-- Launcher screen -->
+    <string name="refresh_projects">Projektliste neu laden</string>
+    <string name="open_settings">Einstellungen öffnen</string>
+    <string name="no_projects_found">Keine claude_*.sh-Skripte im Arbeitsverzeichnis gefunden.</string>
+    <string name="launching_project">Starte %1$s</string>
+    <string name="status_running">läuft</string>
+    <string name="status_stopped">gestoppt</string>
+</resources>
