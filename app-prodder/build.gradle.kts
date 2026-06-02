@@ -11,8 +11,8 @@ android {
         applicationId = "com.github.reygnn.prodder"
         minSdk        = 36
         targetSdk     = 36
-        versionCode   = 8
-        versionName   = "0.3.1"
+        versionCode   = 9
+        versionName   = "0.3.2"
     }
 
     buildTypes {
