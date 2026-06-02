@@ -1,4 +1,4 @@
-package com.github.reygnn.lobber.ui
+package com.github.reygnn.caster.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,10 +7,8 @@ import com.github.reygnn.core.onboarding.OnboardingController
 
 /**
  * Thin lifecycle wrapper around the shared [OnboardingController] (core-onboarding).
- * All onboarding logic — the two-phase host-key flow (AUDIT V4), validation,
- * persistence — lives in the controller and is shared with Caster/Prodder; only
- * the `viewModelScope` and the per-app working-dir policy are bound here.
- * Lobber installs AABs, so a working dir is required.
+ * All onboarding logic is shared with Lobber/Prodder; Caster runs `screen`
+ * sessions in a build dir, so a working dir is required.
  */
 class OnboardingViewModel(settings: SettingsStore) : ViewModel() {
     val controller = OnboardingController(settings, viewModelScope, requireWorkingDir = true)

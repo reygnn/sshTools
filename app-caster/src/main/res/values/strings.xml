@@ -43,4 +43,30 @@
     <string name="launch_failed">Launch failed (exit %1$s)</string>
     <string name="status_running">running</string>
     <string name="status_stopped">stopped</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Set up Caster</string>
+    <string name="onboarding_intro">Caster generates a key on the phone and pushes the public key to the build host. You only need a username and password once for that.</string>
+    <string name="onboarding_start">Start auto-setup</string>
+    <string name="onboarding_running">Running…</string>
+    <string name="onboarding_have_key">I already have a key</string>
+    <string name="field_host">Host</string>
+    <string name="field_port">Port</string>
+    <string name="field_user">Username</string>
+    <string name="field_password_once">Password (used once)</string>
+
+    <!-- Onboarding step labels -->
+    <string name="step_generating">Generating Ed25519 key…</string>
+    <string name="step_discovering">Reading host key…</string>
+    <string name="step_awaiting_confirm">Waiting for host-key confirmation…</string>
+    <string name="step_pushing">Pushing public key to build host…</string>
+    <string name="step_verifying">Verifying public-key login…</string>
+    <string name="step_saving">Saving configuration…</string>
+    <string name="step_done">Done</string>
+
+    <!-- Host-key confirmation (shown before the password is sent) -->
+    <string name="onboarding_hostkey_title">Verify host key</string>
+    <string name="onboarding_hostkey_body">First connection to %1$s. The server presented this host-key fingerprint:</string>
+    <string name="onboarding_hostkey_hint">Make sure it matches the build host (e.g. run \"ssh-keygen -lf\" on its host key there) before trusting it. Your password is only sent after you confirm.</string>
+    <string name="onboarding_hostkey_trust">Trust &amp; continue</string>
 </resources>

@@ -556,6 +556,14 @@ Konsolidierungsvorschläge zielen auf `core-data`/`core-ui`).
   umgestellt + V4-Tests (Passwort wird vor Bestätigung nicht gesendet; Cancel-Pfad;
   bestätigter Fingerprint = gepinnter). `testDebugUnitTest`/`lintDebug`/`bundleRelease` grün.
 
+**Feature-Folgearbeit (Branch `feature/shared-onboarding`):** Der V4-Onboarding-Flow
+wurde anschließend in ein neues Modul `core-onboarding` (`OnboardingController`,
+Zwei-Phasen-State-Machine) + core-ssh-Primitive (`SshOnboarding`/`SshjOnboarding`)
+generalisiert und Caster + Prodder bekamen denselben Auto-Onboarding-Flow (eigener
+Key pro App, Hard Rule 4). Damit hängt keine App mehr für die Einrichtung an einer
+anderen, und die V4-Logik existiert nur noch *einmal*. Onboarding-Tests leben jetzt
+als `OnboardingControllerTest` in core-onboarding (statt 3× pro App).
+
 ### Umsetzungs-Chronik V3 (2026-06-02, Branch `fix/audit-r4-v3-pin-race`)
 
 - **V3** — `saveServer`/`deleteServer` in allen drei `SettingsViewModel`s lesen die

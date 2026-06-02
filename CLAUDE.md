@@ -21,14 +21,17 @@ file only holds what is specific to sshTools.
 Three separate apps for driving a build host over SSH, each shipping as its
 own APK/AAB (own `applicationId`, `versionCode`/`versionName`):
 
-- **Lobber** (`app-lobber`) — remote AAB installer. Onboards a fresh SSH key
-  by password, then streams `install-aab.sh <file>` over pubkey auth. Also
-  the ADB-reconnect helper.
+- **Lobber** (`app-lobber`) — remote AAB installer. Streams
+  `install-aab.sh <file>` over pubkey auth. Also the ADB-reconnect helper.
 - **Caster** (`app-caster`) — project launcher. Lists build projects on the
   host and starts/stops `screen` sessions, streaming the launch log.
 - **Prodder** (`app-prodder`) — session prodder. Attaches to running
   `screen` sessions, captures their content (`hardcopy`) and sends input
   (`stuff`).
+
+All three onboard a fresh SSH key the same way (key generated on device, public
+key pushed to the host by one-time password) via the shared `core-onboarding`
+module — each app keeps its own key (Hard Rule 4), so they onboard independently.
 
 The apps are deliberately separate deliverables. A new feature category
 needs explicit user agreement before it is built.
@@ -40,10 +43,10 @@ needs explicit user agreement before it is built.
 Beyond the shared baseline (Kotlin + Compose + M3, SDK 36, JDK 21, AGP 9
 built-in Kotlin, JUnit 4 + MockK + Turbine):
 
-- **Multi-module by design.** Four `core-*` libraries
-  (`core-data`, `core-ssh`, `core-ui`, `core-testing`) plus three app
-  modules. The split is justified *only* because three apps share the SSH,
-  crypto and persistence stack — it is the exception to the
+- **Multi-module by design.** Five `core-*` libraries
+  (`core-data`, `core-ssh`, `core-ui`, `core-onboarding`, `core-testing`) plus
+  three app modules. The split is justified *only* because three apps share the
+  SSH, crypto, persistence and onboarding stack — it is the exception to the
   "single `:app` module" baseline, not a pattern to copy.
 - **SSH:** sshj 0.40 + BouncyCastle 1.84 (`bcprov`/`bcpkix-jdk18on`),
   `slf4j-nop` at runtime. Android's stripped BC lacks Ed25519, so each app
@@ -64,7 +67,11 @@ core-data/      SettingsStore (DataStore), KeyVault (AES-256-GCM at rest),
 core-ssh/       app-agnostic SSH primitives ONLY: SshKeygen, SshSecurity +
                 TofuHostKeyVerifier + shell/pathQuote + hostKeyFingerprint,
                 BcOpenSshKeyProvider, StreamUtils.readCapped, LogLine
+                + SshOnboarding/SshjOnboarding (two-phase key onboarding, AUDIT V4)
 core-ui/        AppTheme (Material You), UiText (deferred string resolution)
+core-onboarding/ OnboardingController (shared two-phase onboarding state machine,
+                depends on core-ssh + core-data) — apps wrap it in a thin VM +
+                their own OnboardingScreen. NOT an SshConfig/SshClient (Hard Rule 1)
 core-testing/   MainDispatcherRule, TESTING_CONVENTIONS (api deps: junit,
                 mockk, coroutines-test, turbine)
 

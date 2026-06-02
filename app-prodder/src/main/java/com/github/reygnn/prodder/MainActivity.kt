@@ -6,14 +6,24 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.github.reygnn.core.data.ConfigState
 import com.github.reygnn.core.ui.AppTheme
+import com.github.reygnn.prodder.ui.OnboardingScreen
+import com.github.reygnn.prodder.ui.OnboardingViewModel
 import com.github.reygnn.prodder.ui.SessionScreen
 import com.github.reygnn.prodder.ui.SessionViewModel
 import com.github.reygnn.prodder.ui.SessionsScreen
@@ -30,6 +40,7 @@ class MainActivity : ComponentActivity() {
     private val sessionsVm: SessionsViewModel by viewModels { factory }
     private val sessionVm: SessionViewModel by viewModels { factory }
     private val settingsVm: SettingsViewModel by viewModels { factory }
+    private val onboardingVm: OnboardingViewModel by viewModels { factory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,8 +53,28 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             AppTheme {
+                val configState by settingsVm.configState.collectAsStateWithLifecycle()
                 val nav = rememberNavController()
-                NavHost(navController = nav, startDestination = "sessions") {
+                NavHost(navController = nav, startDestination = "loading") {
+                    composable("loading") {
+                        LaunchedEffect(configState) {
+                            when (configState) {
+                                ConfigState.Configured   -> nav.navigate("sessions")   { popUpTo("loading") { inclusive = true } }
+                                ConfigState.Unconfigured -> nav.navigate("onboarding")  { popUpTo("loading") { inclusive = true } }
+                                ConfigState.Loading      -> Unit
+                            }
+                        }
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    composable("onboarding") {
+                        OnboardingScreen(
+                            viewModel = onboardingVm,
+                            onDone = { nav.navigate("sessions") { popUpTo("onboarding") { inclusive = true } } },
+                            onManual = { nav.navigate("settings") },
+                        )
+                    }
                     composable("sessions") {
                         // Beim Foreground frisch laden, beim Background Liste leeren
                         // (zeigt dann Spinner statt veralteter Einträge).
@@ -76,9 +107,12 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("settings") {
-                        // done() persistiert und feuert savedEvents — dann zurück.
+                        // done() persistiert und feuert savedEvents — danach zur Sessions-Liste
+                        // (funktioniert aus beiden Quellen: Sessions und Onboarding-"hab Key").
                         LaunchedEffect(Unit) {
-                            settingsVm.savedEvents.collect { nav.popBackStack() }
+                            settingsVm.savedEvents.collect {
+                                nav.navigate("sessions") { popUpTo("settings") { inclusive = true } }
+                            }
                         }
                         SettingsScreen(
                             viewModel = settingsVm,

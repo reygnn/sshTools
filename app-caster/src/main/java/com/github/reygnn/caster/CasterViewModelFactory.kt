@@ -6,6 +6,7 @@ import com.github.reygnn.core.data.SettingsStore
 import com.github.reygnn.caster.ssh.SshConfig
 import com.github.reygnn.caster.ssh.SshjClient
 import com.github.reygnn.caster.ui.LaunchViewModel
+import com.github.reygnn.caster.ui.OnboardingViewModel
 import com.github.reygnn.caster.ui.SettingsViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -24,8 +25,9 @@ class CasterViewModelFactory(
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T = when (modelClass) {
-        SettingsViewModel::class.java -> SettingsViewModel(store) as T
-        LaunchViewModel::class.java   -> LaunchViewModel(store, ::client) as T
+        SettingsViewModel::class.java   -> SettingsViewModel(store) as T
+        LaunchViewModel::class.java     -> LaunchViewModel(store, ::client) as T
+        OnboardingViewModel::class.java -> OnboardingViewModel(store) as T
         else -> error("Unknown ViewModel: ${modelClass.name}")
     }
 }

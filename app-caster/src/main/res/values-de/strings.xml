@@ -43,4 +43,30 @@
     <string name="launch_failed">Start fehlgeschlagen (Exit %1$s)</string>
     <string name="status_running">läuft</string>
     <string name="status_stopped">gestoppt</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Caster einrichten</string>
+    <string name="onboarding_intro">Caster erzeugt einen Schlüssel auf dem Telefon und überträgt den öffentlichen Schlüssel auf den Build-Host. Dafür brauchst du nur einmal Benutzername und Passwort.</string>
+    <string name="onboarding_start">Auto-Einrichtung starten</string>
+    <string name="onboarding_running">Läuft…</string>
+    <string name="onboarding_have_key">Ich habe bereits einen Schlüssel</string>
+    <string name="field_host">Host</string>
+    <string name="field_port">Port</string>
+    <string name="field_user">Benutzername</string>
+    <string name="field_password_once">Passwort (einmalig)</string>
+
+    <!-- Onboarding step labels -->
+    <string name="step_generating">Erzeuge Ed25519-Schlüssel…</string>
+    <string name="step_discovering">Lese Host-Key…</string>
+    <string name="step_awaiting_confirm">Warte auf Host-Key-Bestätigung…</string>
+    <string name="step_pushing">Übertrage öffentlichen Schlüssel auf den Build-Host…</string>
+    <string name="step_verifying">Prüfe Public-Key-Login…</string>
+    <string name="step_saving">Speichere Konfiguration…</string>
+    <string name="step_done">Fertig</string>
+
+    <!-- Host-Key-Bestätigung (vor dem Senden des Passworts) -->
+    <string name="onboarding_hostkey_title">Host-Key prüfen</string>
+    <string name="onboarding_hostkey_body">Erste Verbindung zu %1$s. Der Server hat diesen Host-Key-Fingerprint präsentiert:</string>
+    <string name="onboarding_hostkey_hint">Stelle sicher, dass er zum Build-Host passt (z. B. dort \"ssh-keygen -lf\" auf dem Host-Key ausführen), bevor du ihm vertraust. Dein Passwort wird erst nach der Bestätigung gesendet.</string>
+    <string name="onboarding_hostkey_trust">Vertrauen &amp; fortfahren</string>
 </resources>

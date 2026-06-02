@@ -71,6 +71,8 @@ import com.github.reygnn.lobber.BuildConfig
 import com.github.reygnn.lobber.R
 import com.github.reygnn.lobber.ssh.AabEntry
 import com.github.reygnn.core.ssh.LogLine
+import com.github.reygnn.core.onboarding.OnboardingError
+import com.github.reygnn.core.onboarding.OnboardingStep
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -477,10 +479,11 @@ fun OnboardingScreen(
     onDone: () -> Unit,
     onManual: () -> Unit,
 ) {
-    val s by viewModel.state.collectAsStateWithLifecycle()
+    val c = viewModel.controller
+    val s by c.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
-        viewModel.doneEvents.collect { onDone() }
+        c.doneEvents.collect { onDone() }
     }
 
     val running = s.step != OnboardingStep.Idle && s.step != OnboardingStep.Done
@@ -503,36 +506,40 @@ fun OnboardingScreen(
             )
 
             OutlinedTextField(
-                value = s.host, onValueChange = viewModel::onHost,
+                value = s.host, onValueChange = c::onHost,
                 label = { Text(stringResource(R.string.field_host)) }, singleLine = true, enabled = !running,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
-                value = s.port, onValueChange = viewModel::onPort,
+                value = s.port, onValueChange = c::onPort,
                 label = { Text(stringResource(R.string.field_port)) }, singleLine = true, enabled = !running,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
-                value = s.username, onValueChange = viewModel::onUsername,
+                value = s.username, onValueChange = c::onUsername,
                 label = { Text(stringResource(R.string.field_user)) }, singleLine = true, enabled = !running,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
-                value = s.password, onValueChange = viewModel::onPassword,
+                value = s.password, onValueChange = c::onPassword,
                 label = { Text(stringResource(R.string.field_password_once)) }, singleLine = true, enabled = !running,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
-                value = s.workingDir, onValueChange = viewModel::onWorkingDir,
+                value = s.workingDir, onValueChange = c::onWorkingDir,
                 label = { Text(stringResource(R.string.field_working_dir)) }, singleLine = true, enabled = !running,
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            s.error?.let {
-                Text(it.resolve(), color = MaterialTheme.colorScheme.error)
+            s.error?.let { err ->
+                val msg = when (err) {
+                    OnboardingError.EmptyFields -> stringResource(R.string.error_fill_all_fields)
+                    is OnboardingError.Failure -> err.message
+                }
+                Text(msg, color = MaterialTheme.colorScheme.error)
             }
 
             if (running) {
@@ -547,7 +554,7 @@ fun OnboardingScreen(
             }
 
             Button(
-                onClick = viewModel::start,
+                onClick = c::start,
                 enabled = !running,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -568,7 +575,7 @@ fun OnboardingScreen(
     // the password is sent. Confirming pins the key; cancelling aborts. See AUDIT V4.
     s.pendingFingerprint?.let { fingerprint ->
         AlertDialog(
-            onDismissRequest = viewModel::cancelHostKey,
+            onDismissRequest = c::cancelHostKey,
             title = { Text(stringResource(R.string.onboarding_hostkey_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -585,12 +592,12 @@ fun OnboardingScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = viewModel::confirmHostKey) {
+                TextButton(onClick = c::confirmHostKey) {
                     Text(stringResource(R.string.onboarding_hostkey_trust))
                 }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::cancelHostKey) {
+                TextButton(onClick = c::cancelHostKey) {
                     Text(stringResource(R.string.cancel))
                 }
             },

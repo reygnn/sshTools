@@ -18,6 +18,7 @@ rootProject.name = "SshTools"
 include(":core-data")
 include(":core-ssh")
 include(":core-ui")
+include(":core-onboarding")
 include(":core-testing")
 include(":app-lobber")
 include(":app-caster")

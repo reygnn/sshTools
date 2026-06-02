@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.github.reygnn.core.data.SettingsStore
 import com.github.reygnn.prodder.ssh.SshConfig
 import com.github.reygnn.prodder.ssh.SshjClient
+import com.github.reygnn.prodder.ui.OnboardingViewModel
 import com.github.reygnn.prodder.ui.SessionViewModel
 import com.github.reygnn.prodder.ui.SessionsViewModel
 import com.github.reygnn.prodder.ui.SettingsViewModel
@@ -25,9 +26,10 @@ class ProdderViewModelFactory(
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T = when (modelClass) {
-        SettingsViewModel::class.java -> SettingsViewModel(store) as T
-        SessionsViewModel::class.java -> SessionsViewModel(store, ::client) as T
-        SessionViewModel::class.java  -> SessionViewModel(store, ::client) as T
+        SettingsViewModel::class.java   -> SettingsViewModel(store) as T
+        SessionsViewModel::class.java   -> SessionsViewModel(store, ::client) as T
+        SessionViewModel::class.java    -> SessionViewModel(store, ::client) as T
+        OnboardingViewModel::class.java -> OnboardingViewModel(store) as T
         else -> error("Unknown ViewModel: ${modelClass.name}")
     }
 }
