@@ -62,6 +62,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -562,15 +563,50 @@ fun OnboardingScreen(
             }
         }
     }
+
+    // Host-key confirmation: shown after phase 1 learns the fingerprint and BEFORE
+    // the password is sent. Confirming pins the key; cancelling aborts. See AUDIT V4.
+    s.pendingFingerprint?.let { fingerprint ->
+        AlertDialog(
+            onDismissRequest = viewModel::cancelHostKey,
+            title = { Text(stringResource(R.string.onboarding_hostkey_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.onboarding_hostkey_body, s.host.trim()))
+                    Text(
+                        fingerprint,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                    Text(
+                        stringResource(R.string.onboarding_hostkey_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmHostKey) {
+                    Text(stringResource(R.string.onboarding_hostkey_trust))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::cancelHostKey) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
 }
 
 @Composable
 private fun stepLabel(step: OnboardingStep): String = when (step) {
-    OnboardingStep.Idle           -> ""
-    OnboardingStep.GeneratingKey  -> stringResource(R.string.step_generating)
-    OnboardingStep.PushingKey     -> stringResource(R.string.step_pushing)
-    OnboardingStep.Verifying      -> stringResource(R.string.step_verifying)
-    OnboardingStep.Saving         -> stringResource(R.string.step_saving)
-    OnboardingStep.Done           -> stringResource(R.string.step_done)
+    OnboardingStep.Idle                   -> ""
+    OnboardingStep.GeneratingKey          -> stringResource(R.string.step_generating)
+    OnboardingStep.DiscoveringHost        -> stringResource(R.string.step_discovering)
+    OnboardingStep.AwaitingHostKeyConfirm -> stringResource(R.string.step_awaiting_confirm)
+    OnboardingStep.PushingKey             -> stringResource(R.string.step_pushing)
+    OnboardingStep.Verifying              -> stringResource(R.string.step_verifying)
+    OnboardingStep.Saving                 -> stringResource(R.string.step_saving)
+    OnboardingStep.Done                   -> stringResource(R.string.step_done)
 }
 

@@ -11,15 +11,31 @@ import java.io.IOException
 
 class SshjBootstrap : SshBootstrap {
 
-    override suspend fun pushPublicKey(
-        host: String, port: Int, username: String,
-        password: String, publicKeyLine: String,
-    ): String = withContext(Dispatchers.IO) {
-        // Password auth (not pubkey), so the SSHClient is built here rather than
-        // via connectWithKey; the command drain/join is shared (runCommand).
+    override suspend fun discoverHostKey(host: String, port: Int): String = withContext(Dispatchers.IO) {
+        // Connect only far enough to complete the transport handshake (which runs
+        // host-key verification) — no user auth, so no secret is sent. See AUDIT V4.
         val ssh = SSHClient()
         var learned: String? = null
         ssh.addHostKeyVerifier(TofuHostKeyVerifier(expectedFingerprint = null) { learned = it })
+        try {
+            ssh.connect(host, port)
+        } finally {
+            ssh.disconnect()
+        }
+        learned ?: throw IOException("Could not determine host-key fingerprint")
+    }
+
+    override suspend fun pushPublicKey(
+        host: String, port: Int, username: String,
+        password: String, publicKeyLine: String, expectedFingerprint: String,
+    ): Unit = withContext(Dispatchers.IO) {
+        // Password auth (not pubkey), so the SSHClient is built here rather than
+        // via connectWithKey; the command drain/join is shared (runCommand).
+        val ssh = SSHClient()
+        // Pin the user-confirmed host key: if the server now presents a different
+        // key (MITM), connect() aborts before authPassword runs — the password
+        // never leaves the device. See AUDIT V4.
+        ssh.addHostKeyVerifier(TofuHostKeyVerifier(expectedFingerprint = expectedFingerprint))
         ssh.connect(host, port)
         try {
             ssh.authPassword(username, password)
@@ -39,7 +55,6 @@ class SshjBootstrap : SshBootstrap {
         } finally {
             ssh.disconnect()
         }
-        learned ?: throw IOException("Could not determine host-key fingerprint")
     }
 
     override suspend fun verifyPubkeyAuth(config: SshConfig) = withContext(Dispatchers.IO) {

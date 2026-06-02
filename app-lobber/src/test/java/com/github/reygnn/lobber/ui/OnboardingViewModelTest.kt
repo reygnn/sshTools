@@ -23,6 +23,12 @@ import org.junit.Rule
 import org.junit.Test
 import java.io.IOException
 
+/**
+ * Two-phase onboarding (AUDIT V4): [OnboardingViewModel.start] generates the key
+ * and learns the host-key fingerprint *without* sending the password;
+ * [OnboardingViewModel.confirmHostKey] only then transmits the password. These
+ * tests pin both phases and that the password is withheld until confirmation.
+ */
 class OnboardingViewModelTest {
 
     @get:Rule
@@ -42,7 +48,8 @@ class OnboardingViewModelTest {
         coEvery { settings.saveKey(any()) } just Runs
         coEvery { settings.saveServers(any()) } just Runs
         coEvery { settings.savePubKey(any()) } just Runs
-        coEvery { bootstrap.pushPublicKey(any(), any(), any(), any(), any()) } returns "SHA256:testfp"
+        coEvery { bootstrap.discoverHostKey(any(), any()) } returns "SHA256:testfp"
+        coEvery { bootstrap.pushPublicKey(any(), any(), any(), any(), any(), any()) } just Runs
         coEvery { bootstrap.verifyPubkeyAuth(any()) } just Runs
         vm = OnboardingViewModel(settings = settings, bootstrap = bootstrap, keygen = { testKeyPair })
     }
@@ -55,14 +62,21 @@ class OnboardingViewModelTest {
         vm.onWorkingDir("/srv/builds")
     }
 
-    @Test
-    fun `happy path completes with Done step and clears password`() = runTest(mainDispatcherRule.dispatcher) {
+    /** Runs both onboarding phases (assumes the user confirms the host key). */
+    private fun onboard() {
         fillForm()
         vm.start()
+        vm.confirmHostKey()
+    }
+
+    @Test
+    fun `happy path completes with Done step and clears password`() = runTest(mainDispatcherRule.dispatcher) {
+        onboard()
         vm.state.test {
             val final = expectMostRecentItem()
             assertEquals(OnboardingStep.Done, final.step)
             assertEquals("", final.password)
+            assertNull(final.pendingFingerprint)
             assertNull(final.error)
         }
     }
@@ -70,20 +84,82 @@ class OnboardingViewModelTest {
     @Test
     fun `happy path emits exactly one done event`() = runTest(mainDispatcherRule.dispatcher) {
         fillForm()
-        vm.start()
         vm.doneEvents.test {
+            vm.start()
+            vm.confirmHostKey()
             awaitItem()
             expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
     }
 
+    // ── Phase 1 → confirmation gate (AUDIT V4) ────────────────────
+
+    @Test
+    fun `start learns the fingerprint and pauses without sending the password`() = runTest(mainDispatcherRule.dispatcher) {
+        fillForm()
+        vm.start()
+
+        vm.state.test {
+            val s = expectMostRecentItem()
+            assertEquals(OnboardingStep.AwaitingHostKeyConfirm, s.step)
+            assertEquals("SHA256:testfp", s.pendingFingerprint)
+        }
+        coVerify(exactly = 1) { bootstrap.discoverHostKey("buildserver", 2222) }
+        coVerify(exactly = 0) { bootstrap.pushPublicKey(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `confirmHostKey sends the password and pins the confirmed fingerprint`() = runTest(mainDispatcherRule.dispatcher) {
+        coEvery { bootstrap.discoverHostKey(any(), any()) } returns "SHA256:pinned"
+        val pushedFp = slot<String>()
+        coEvery { bootstrap.pushPublicKey(any(), any(), any(), any(), any(), capture(pushedFp)) } just Runs
+
+        onboard()
+
+        // The password is only pushed in phase 2, against the confirmed fingerprint.
+        coVerify(exactly = 1) { bootstrap.pushPublicKey("buildserver", 2222, "ci", "secret", any(), any()) }
+        assertEquals("SHA256:pinned", pushedFp.captured)
+    }
+
+    @Test
+    fun `cancelHostKey aborts without sending the password and clears it`() = runTest(mainDispatcherRule.dispatcher) {
+        fillForm()
+        vm.start()
+        vm.cancelHostKey()
+
+        vm.state.test {
+            val s = expectMostRecentItem()
+            assertEquals(OnboardingStep.Idle, s.step)
+            assertEquals("", s.password)
+            assertNull(s.pendingFingerprint)
+        }
+        coVerify(exactly = 0) { bootstrap.pushPublicKey(any(), any(), any(), any(), any(), any()) }
+    }
+
+    // ── Failure paths ─────────────────────────────────────────────
+
+    @Test
+    fun `discoverHostKey failure surfaces error and resets to Idle`() = runTest(mainDispatcherRule.dispatcher) {
+        coEvery { bootstrap.discoverHostKey(any(), any()) } throws IOException("connect refused")
+        fillForm()
+        vm.start()
+        vm.state.test {
+            val final = expectMostRecentItem()
+            assertEquals(OnboardingStep.Idle, final.step)
+            assertEquals("", final.password)
+            assertEquals(UiText.Literal("IOException: connect refused"), final.error)
+        }
+        coVerify(exactly = 0) { bootstrap.pushPublicKey(any(), any(), any(), any(), any(), any()) }
+    }
+
     @Test
     fun `failure path emits no done event`() = runTest(mainDispatcherRule.dispatcher) {
         coEvery { bootstrap.verifyPubkeyAuth(any()) } throws IOException("nope")
         fillForm()
-        vm.start()
         vm.doneEvents.test {
+            vm.start()
+            vm.confirmHostKey()
             expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
@@ -91,9 +167,8 @@ class OnboardingViewModelTest {
 
     @Test
     fun `pushPublicKey failure surfaces error and resets to Idle`() = runTest(mainDispatcherRule.dispatcher) {
-        coEvery { bootstrap.pushPublicKey(any(), any(), any(), any(), any()) } throws IOException("auth failed")
-        fillForm()
-        vm.start()
+        coEvery { bootstrap.pushPublicKey(any(), any(), any(), any(), any(), any()) } throws IOException("auth failed")
+        onboard()
         vm.state.test {
             val final = expectMostRecentItem()
             assertEquals(OnboardingStep.Idle, final.step)
@@ -104,8 +179,7 @@ class OnboardingViewModelTest {
     @Test
     fun `verifyPubkeyAuth failure surfaces error`() = runTest(mainDispatcherRule.dispatcher) {
         coEvery { bootstrap.verifyPubkeyAuth(any()) } throws IOException("verification failed")
-        fillForm()
-        vm.start()
+        onboard()
         vm.state.test {
             val final = expectMostRecentItem()
             assertEquals(OnboardingStep.Idle, final.step)
@@ -118,8 +192,7 @@ class OnboardingViewModelTest {
         val root = IllegalStateException("Ed25519 not found")
         val mid = java.security.GeneralSecurityException("KeyFactory failed", root)
         coEvery { bootstrap.verifyPubkeyAuth(any()) } throws IOException("Read OpenSSH Version 1 Key failed", mid)
-        fillForm()
-        vm.start()
+        onboard()
         vm.state.test {
             val final = expectMostRecentItem()
             assertEquals(
@@ -133,6 +206,8 @@ class OnboardingViewModelTest {
         }
     }
 
+    // ── Guards & validation ───────────────────────────────────────
+
     @Test
     fun `start without filled form yields validation error and does not call bootstrap`() = runTest(mainDispatcherRule.dispatcher) {
         vm.start()
@@ -141,35 +216,35 @@ class OnboardingViewModelTest {
             assertEquals(UiText.Resource(R.string.error_fill_all_fields), final.error)
             assertEquals(OnboardingStep.Idle, final.step)
         }
-        coVerify(exactly = 0) { bootstrap.pushPublicKey(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { bootstrap.discoverHostKey(any(), any()) }
     }
 
     @Test
     fun `a second start while one is in flight is ignored`() = runTest(mainDispatcherRule.dispatcher) {
-        // Gate pushPublicKey so the first run stays at PushingKey while a second
-        // start() is issued — the guard must drop it, so no duplicate authorized_keys
-        // push / done-event (AUDIT V10).
+        // Gate discoverHostKey so the first run stays at DiscoveringHost while a
+        // second start() is issued — the guard must drop it. See AUDIT V10.
         val gate = CompletableDeferred<String>()
-        coEvery { bootstrap.pushPublicKey(any(), any(), any(), any(), any()) } coAnswers { gate.await() }
+        coEvery { bootstrap.discoverHostKey(any(), any()) } coAnswers { gate.await() }
         fillForm()
 
-        vm.start()   // suspends inside pushPublicKey, step = PushingKey
+        vm.start()   // suspends inside discoverHostKey
         vm.start()   // must be ignored by the in-flight guard
         gate.complete("SHA256:testfp")
 
-        vm.state.test { assertEquals(OnboardingStep.Done, expectMostRecentItem().step) }
-        coVerify(exactly = 1) { bootstrap.pushPublicKey(any(), any(), any(), any(), any()) }
+        vm.state.test { assertEquals(OnboardingStep.AwaitingHostKeyConfirm, expectMostRecentItem().step) }
+        coVerify(exactly = 1) { bootstrap.discoverHostKey(any(), any()) }
     }
+
+    // ── Persistence wiring ────────────────────────────────────────
 
     @Test
     fun `pubkey is pushed and persisted on happy path`() = runTest(mainDispatcherRule.dispatcher) {
         val pushedLine = slot<String>()
         coEvery {
-            bootstrap.pushPublicKey(any(), any(), any(), any(), capture(pushedLine))
-        } returns "SHA256:testfp"
+            bootstrap.pushPublicKey(any(), any(), any(), any(), capture(pushedLine), any())
+        } just Runs
 
-        fillForm()
-        vm.start()
+        onboard()
         vm.state.test { expectMostRecentItem() }
 
         assertEquals("ssh-ed25519 AAAA test@host", pushedLine.captured)
@@ -177,13 +252,12 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `host fingerprint from push is pinned onto the verified config and saved profile`() = runTest(mainDispatcherRule.dispatcher) {
-        coEvery { bootstrap.pushPublicKey(any(), any(), any(), any(), any()) } returns "SHA256:pinned"
+    fun `host fingerprint from discovery is pinned onto the verified config and saved profile`() = runTest(mainDispatcherRule.dispatcher) {
+        coEvery { bootstrap.discoverHostKey(any(), any()) } returns "SHA256:pinned"
         val cfg = slot<SshConfig>()
         coEvery { bootstrap.verifyPubkeyAuth(capture(cfg)) } just Runs
 
-        fillForm()
-        vm.start()
+        onboard()
         vm.state.test { expectMostRecentItem() }
 
         assertEquals("SHA256:pinned", cfg.captured.knownHostFingerprint)
@@ -193,14 +267,16 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `parsed port is forwarded to bootstrap and settings`() = runTest(mainDispatcherRule.dispatcher) {
+    fun `parsed port is forwarded to discovery, bootstrap and settings`() = runTest(mainDispatcherRule.dispatcher) {
+        val discPort = slot<Int>()
+        coEvery { bootstrap.discoverHostKey(any(), capture(discPort)) } returns "SHA256:testfp"
         val cfg = slot<SshConfig>()
         coEvery { bootstrap.verifyPubkeyAuth(capture(cfg)) } just Runs
 
-        fillForm()
-        vm.start()
+        onboard()
         vm.state.test { expectMostRecentItem() }
 
+        assertEquals(2222, discPort.captured)
         assertEquals(2222, cfg.captured.port)
         coVerify { settings.saveKey("PEM-BLOCK") }
         coVerify {

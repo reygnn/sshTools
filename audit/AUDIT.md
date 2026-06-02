@@ -500,7 +500,7 @@ Konsolidierungsvorschläge zielen auf `core-data`/`core-ui`).
 | V1 | Streaming-Exit-Code wird nie ausgewertet → fehlgeschlagene Install/Launch sehen erfolgreich aus | Korrektheit | **mittel–hoch** | ✅ Quick-Win |
 | V2 | `find -printf '%T@'` locale-abhängiges Dezimal-Trennzeichen → AABs verschwinden lautlos | Korrektheit/Robustheit | mittel | ✅ Quick-Win |
 | V3 | `SettingsViewModel`-CRUD überschreibt asynchron gelernten Host-Key-Pin (stale Snapshot) | Concurrency/Security | mittel | ✅ `fix/audit-r4-v3-pin-race` |
-| V4 | Onboarding sendet Passwort an noch *unverifizierten* Host (TOFU-First-Use-Secrecy) | Security | mittel (inhärent) | offen |
+| V4 | Onboarding sendet Passwort an noch *unverifizierten* Host (TOFU-First-Use-Secrecy) | Security | mittel (inhärent) | ✅ `fix/audit-r4-v4-onboarding-tofu` |
 | V5 | Streaming-Reader (`lineSequence()`) nicht cancellation-fähig → verzögerter `.use{}`-Teardown | Resource/Robustheit | niedrig–mittel | offen |
 | V6 | Prodder `capture`/hardcopy: Exit-Code verworfen + fixe `sleep 0.15` → leerer Schirm als „Erfolg" | Korrektheit | niedrig–mittel | ✅ Quick-Win (Exit-Check; `sleep` als Limit belassen) |
 | V7 | Prodder `sendRaw` ohne In-Flight-Guard → überlappende `stuff`-Payloads (Tastendreher) | Concurrency | niedrig–mittel | ✅ Quick-Win |
@@ -523,7 +523,20 @@ Konsolidierungsvorschläge zielen auf `core-data`/`core-ui`).
 - **V10** — `if (s.step != Idle) return` in `OnboardingViewModel.start()` (+ Test).
 
 `./gradlew testDebugUnitTest lintDebug` grün (0 Lint-Issues), `bundleRelease` grün
-(R8/minify sauber). Offen bleiben V4, V5, V9, V11.
+(R8/minify sauber). Offen bleiben V5, V9, V11.
+
+### Umsetzungs-Chronik V4 (2026-06-02, Branch `fix/audit-r4-v4-onboarding-tofu`)
+
+- **V4** — Onboarding ist jetzt **zweiphasig**. `SshBootstrap.discoverHostKey(host, port)`
+  verbindet nur bis zum Transport-Handshake (lernt den Fingerprint), **ohne** User-Auth
+  — es wird kein Secret gesendet. `OnboardingViewModel.start()` endet bei
+  `AwaitingHostKeyConfirm` und zeigt den `SHA256:…`-Fingerprint in einem Dialog. Erst
+  `confirmHostKey()` ruft `pushPublicKey(..., expectedFingerprint)`, das den bestätigten
+  Key **vor** `authPassword` pinnt — ein MITM mit anderem Key bricht den Connect ab,
+  bevor das Passwort das Gerät verlässt. `cancelHostKey()` bricht ab und löscht das
+  Passwort. Neue Strings (EN+DE), `OnboardingViewModelTest` auf den Zweiphasen-Flow
+  umgestellt + V4-Tests (Passwort wird vor Bestätigung nicht gesendet; Cancel-Pfad;
+  bestätigter Fingerprint = gepinnter). `testDebugUnitTest`/`lintDebug`/`bundleRelease` grün.
 
 ### Umsetzungs-Chronik V3 (2026-06-02, Branch `fix/audit-r4-v3-pin-race`)
 
