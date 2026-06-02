@@ -289,6 +289,19 @@ explizite Turbine-Zeile transitiv schon vorhanden. **Empfehlung:** die
 - **`ServerProfile.pinToKeepFor`** und **`parseScreenSessions`** sind die Vorbilder,
   wie geteilte Logik korrekt in core landet (von Caster *und* Prodder genutzt,
   damit beide nicht driften können) — die Funde #1/#4 sollten diesem Muster folgen.
+- **App-`build.gradle.kts`-Duplizierung bewusst belassen — nicht erneut als
+  Refactor vorschlagen.** Die drei App-Build-Skripte sind ~67/72 Zeilen identisch
+  und unterscheiden sich nur in `namespace`/`applicationId`/`versionCode`/
+  `versionName` — gutartige deklarative Duplizierung, kein Logik-Code. Einziges
+  Risiko ist Drift (z. B. `compileSdk` nur in einer App gebumpt), und das ist
+  gering: die Werte folgen der stabilen Familie-Baseline und werden faktisch im
+  Gleichschritt editiert. Ein `build-logic`-Convention-Plugin würde das Drift-
+  Risiko killen, bringt aber ein Composite-Build-Modul (`kotlin-dsl` + AGP-/
+  Katalog-Wiring) — bei *drei* Apps Over-Engineering, das der bewusst minimalen
+  Build-Philosophie der Familie widerspricht (analog zu #9 „bewusst dupliziert").
+  Neu bewerten erst, wenn `compileSdk`/JDK/AGP familienweit zu wandern beginnen
+  und mehrere Apps synchron gehalten werden müssen — dann übersteigt der Drift-
+  Schutz die Infrastrukturkosten.
 
 ---
 
