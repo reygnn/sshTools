@@ -1,6 +1,7 @@
 package com.github.reygnn.lobber.ssh
 
 import com.github.reygnn.core.ssh.LogLine
+import com.github.reygnn.core.ssh.RemoteCommandException
 import com.github.reygnn.core.ssh.connectWithKey
 import com.github.reygnn.core.ssh.pathQuote
 import com.github.reygnn.core.ssh.runCommand
@@ -32,9 +33,7 @@ class SshjClient(
             val (exit, out, err) = ssh.runCommand(
                 "find -L ${pathQuote(config.workingDir)} -maxdepth 1 -name '*.aab' -type f -printf '%T@\\t%p\\n'"
             )
-            if (exit != 0) throw java.io.IOException(
-                "find fehlgeschlagen (exit=$exit) für ${config.workingDir}: ${err.trim().ifEmpty { "(keine stderr)" }}"
-            )
+            if (exit != 0) throw RemoteCommandException(exit, err.trim())
             out.lineSequence().filter { it.isNotBlank() }
                 .mapNotNull(::parseFindPrintfLine)
                 .sortedByDescending { it.mtimeEpochSeconds }

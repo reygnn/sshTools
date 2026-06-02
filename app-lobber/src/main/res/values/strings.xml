@@ -26,7 +26,6 @@
 
     <!-- ViewModel-emitted errors -->
     <string name="error_fill_all_fields">Fill in all fields</string>
-    <string name="error_unknown">Unknown error</string>
     <string name="error_adb_fields">Enter the phone IP and the current port.</string>
     <string name="error_not_configured">Configure and save the SSH connection first.</string>
     <string name="error_need_server">Add at least one server.</string>

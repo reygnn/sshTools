@@ -29,7 +29,7 @@ class SshjClient(
     }
 
     override suspend fun capture(sessionId: String): String = withContext(Dispatchers.IO) {
-        require(isValidSessionId(sessionId)) { "Ungültige Session-ID: $sessionId" }
+        require(isValidSessionId(sessionId)) { "Invalid session id: $sessionId" }
         connect().use { ssh ->
             val (_, out, _) = ssh.runCommand(
                 "f=\$(mktemp \"\${TMPDIR:-/tmp}/prodder.XXXXXX\") && " +
@@ -42,7 +42,7 @@ class SshjClient(
 
     override suspend fun sendInput(sessionId: String, payload: String): Boolean =
         withContext(Dispatchers.IO) {
-            require(isValidSessionId(sessionId)) { "Ungültige Session-ID: $sessionId" }
+            require(isValidSessionId(sessionId)) { "Invalid session id: $sessionId" }
             connect().use { ssh ->
                 val (exit, _, _) = ssh.runCommand("screen -S ${shellQuote(sessionId)} -X stuff ${shellQuote(payload)}")
                 exit == 0

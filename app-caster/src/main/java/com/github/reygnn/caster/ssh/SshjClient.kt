@@ -1,5 +1,6 @@
 package com.github.reygnn.caster.ssh
 
+import com.github.reygnn.core.ssh.RemoteCommandException
 import com.github.reygnn.core.ssh.connectWithKey
 import com.github.reygnn.core.ssh.parseScreenSessions
 import com.github.reygnn.core.ssh.pathQuote
@@ -13,7 +14,6 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.IOException
 
 class SshjClient(
     private val config: SshConfig,
@@ -34,9 +34,7 @@ class SshjClient(
             val (lsExit, lsOut, lsErr) = ssh.runCommand(
                 "find -L ${pathQuote(config.workingDir)} -maxdepth 1 -name 'claude_*.sh' -type f -printf '%f\\n'"
             )
-            if (lsExit != 0) throw IOException(
-                "Projektsuche fehlgeschlagen (exit=$lsExit) in ${config.workingDir}: ${lsErr.trim().ifEmpty { "(keine stderr)" }}"
-            )
+            if (lsExit != 0) throw RemoteCommandException(lsExit, lsErr.trim())
             val names = lsOut.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }
                 .mapNotNull(::scriptNameToProject).filter(::isValidProjectName).distinct().toList()
             if (names.isEmpty()) return@use emptyList()
@@ -47,7 +45,7 @@ class SshjClient(
     }
 
     override fun startStreaming(project: String): Flow<LogLine> = channelFlow {
-        require(isValidProjectName(project)) { "Ungültiger Projektname: $project" }
+        require(isValidProjectName(project)) { "Invalid project name: $project" }
         val sessionName = "claude_$project"
         val full = "cd ${pathQuote(config.workingDir)} && " +
             "screen -dmS ${shellQuote(sessionName)} ${shellQuote("./claude_${project}.sh")} && " +

@@ -5,9 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
 import com.github.reygnn.core.ssh.LogLine
+import com.github.reygnn.core.ssh.plusCapped
 import com.github.reygnn.core.ui.UiText
+import com.github.reygnn.core.ui.toUiText
 import com.github.reygnn.lobber.BuildConfig
-import com.github.reygnn.lobber.R
 import com.github.reygnn.lobber.ssh.AabEntry
 import com.github.reygnn.lobber.ssh.SshClient
 import com.github.reygnn.lobber.ssh.SshConfig
@@ -69,7 +70,7 @@ class InstallViewModel(
             _state.update { it.copy(configured = true, loading = true, error = null) }
             runCatching { createClient(config).listAabs() }
                 .onSuccess { aabs -> _state.update { it.copy(loading = false, hasLoadedOnce = true, aabs = aabs) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, hasLoadedOnce = true, error = e.message?.let(UiText::Literal) ?: UiText.Resource(R.string.error_unknown)) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, hasLoadedOnce = true, error = e.toUiText()) } }
         }
     }
 
@@ -96,8 +97,8 @@ class InstallViewModel(
     private suspend fun startInstall(aab: String, config: SshConfig) {
         _state.update { it.copy(installing = aab, log = emptyList(), lastExitCode = null, error = null) }
         createClient(config).executeStreaming("$script ${shellQuote(aab)}")
-            .catch { e -> _state.update { it.copy(installing = null, error = e.message?.let(UiText::Literal) ?: UiText.Resource(R.string.error_unknown)) } }
-            .collect { line -> _state.update { current -> current.copy(log = current.log + line, lastExitCode = if (line is LogLine.ExitCode) line.code else current.lastExitCode) } }
+            .catch { e -> _state.update { it.copy(installing = null, error = e.toUiText()) } }
+            .collect { line -> _state.update { current -> current.copy(log = current.log.plusCapped(line), lastExitCode = if (line is LogLine.ExitCode) line.code else current.lastExitCode) } }
     }
 
     fun clearAabs() {

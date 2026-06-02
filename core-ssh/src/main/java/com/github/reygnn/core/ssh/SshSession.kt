@@ -16,6 +16,17 @@ const val DEFAULT_CONNECT_TIMEOUT_MS: Int = 10_000
 data class CommandResult(val exitStatus: Int, val stdout: String, val stderr: String)
 
 /**
+ * A remote command returned a non-zero exit status. Carries [exitStatus] and
+ * captured [stderr] so callers surface a *localized* message (mapped UI-side)
+ * instead of a hardcoded string. App-agnostic — any SSH command can fail this
+ * way — so it lives next to [CommandResult] in core, not in an app.
+ */
+class RemoteCommandException(
+    val exitStatus: Int,
+    val stderr: String,
+) : java.io.IOException("remote command failed (exit=$exitStatus): ${stderr.ifBlank { "(no stderr)" }}")
+
+/**
  * Opens an [SSHClient], pins the host key trust-on-first-use
  * ([TofuHostKeyVerifier], learned fingerprints reported via [onLearnHostKey]),
  * connects and authenticates with the Ed25519 key in [privateKeyPem].

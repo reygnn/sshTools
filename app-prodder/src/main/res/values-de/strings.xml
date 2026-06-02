@@ -14,7 +14,6 @@
 
     <!-- ViewModel-emitted errors -->
     <string name="error_fill_all_fields">Bitte alle Felder ausfüllen</string>
-    <string name="error_unknown">Unbekannter Fehler</string>
     <string name="error_send_failed">Eingabe konnte nicht an die Session gesendet werden</string>
     <string name="error_need_server">Mindestens einen Server hinzufügen.</string>
     <string name="error_key_required">Zuerst den SSH-Key einfügen.</string>

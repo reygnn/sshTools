@@ -8,7 +8,9 @@ import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
 import com.github.reygnn.core.data.pinToKeepFor
 import com.github.reygnn.core.ssh.LogLine
+import com.github.reygnn.core.ssh.plusCapped
 import com.github.reygnn.core.ui.UiText
+import com.github.reygnn.core.ui.toUiText
 import com.github.reygnn.lobber.R
 import com.github.reygnn.lobber.ssh.SshClient
 import com.github.reygnn.lobber.ssh.SshConfig
@@ -154,8 +156,7 @@ class SettingsViewModel(
                 .onSuccess { _state.update { it.copy(saving = false) }; _savedEvents.trySend(Unit) }
                 .onFailure { e ->
                     _state.update {
-                        it.copy(saving = false, error = e.message?.let(UiText::Literal)
-                            ?: UiText.Resource(R.string.error_unknown))
+                        it.copy(saving = false, error = e.toUiText())
                     }
                 }
         }
@@ -185,8 +186,8 @@ class SettingsViewModel(
             val cmd = "adb connect $target ; adb tcpip 5555 ; adb connect $fixed ; adb devices -l"
             _state.update { it.copy(adbRunning = true, adbLog = emptyList(), error = null) }
             createClient(config).executeStreaming(cmd)
-                .catch { e -> _state.update { it.copy(error = e.message?.let(UiText::Literal) ?: UiText.Resource(R.string.error_unknown)) } }
-                .collect { line -> _state.update { it.copy(adbLog = it.adbLog + line) } }
+                .catch { e -> _state.update { it.copy(error = e.toUiText()) } }
+                .collect { line -> _state.update { it.copy(adbLog = it.adbLog.plusCapped(line)) } }
             _state.update { it.copy(adbRunning = false) }
         }
     }

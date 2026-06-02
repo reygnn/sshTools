@@ -6,6 +6,7 @@ import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
 import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.core.ssh.LogLine
+import com.github.reygnn.core.ssh.RemoteCommandException
 import com.github.reygnn.caster.ssh.ProjectEntry
 import com.github.reygnn.caster.ssh.SshClient
 import io.mockk.coEvery
@@ -129,8 +130,8 @@ class LaunchViewModelTest {
         }
 
     @Test
-    fun `loadProjects surfaces error message`() = runTest(mainDispatcherRule.dispatcher) {
-        coEvery { client.listProjects() } throws IOException("Projektsuche fehlgeschlagen")
+    fun `loadProjects surfaces a generic error message verbatim`() = runTest(mainDispatcherRule.dispatcher) {
+        coEvery { client.listProjects() } throws IOException("connection refused")
 
         vm.state.test {
             awaitItem()
@@ -139,9 +140,30 @@ class LaunchViewModelTest {
             val final = expectMostRecentItem()
             assertTrue(final.hasLoadedOnce)
             assertFalse(final.loading)
-            assertEquals(UiText.Literal("Projektsuche fehlgeschlagen"), final.error)
+            assertEquals(UiText.Literal("connection refused"), final.error)
         }
     }
+
+    @Test
+    fun `loadProjects maps RemoteCommandException to the localized resource`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            coEvery { client.listProjects() } throws RemoteCommandException(2, "no such dir")
+
+            vm.state.test {
+                awaitItem()
+                vm.loadProjects()
+
+                val final = expectMostRecentItem()
+                assertFalse(final.loading)
+                assertEquals(
+                    UiText.Resource(
+                        com.github.reygnn.core.ui.R.string.cu_error_remote_command,
+                        listOf(2, "no such dir"),
+                    ),
+                    final.error,
+                )
+            }
+        }
 
     @Test
     fun `launch streams log and exit code when no session running`() =

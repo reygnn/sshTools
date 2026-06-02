@@ -14,7 +14,6 @@
 
     <!-- ViewModel-emitted errors -->
     <string name="error_fill_all_fields">Fill in all fields</string>
-    <string name="error_unknown">Unknown error</string>
     <string name="error_send_failed">Could not send input to the session</string>
     <string name="error_need_server">Add at least one server.</string>
     <string name="error_key_required">Paste the SSH key first.</string>

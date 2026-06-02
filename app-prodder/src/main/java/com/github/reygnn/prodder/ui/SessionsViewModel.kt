@@ -2,8 +2,8 @@ package com.github.reygnn.prodder.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.reygnn.prodder.R
 import com.github.reygnn.core.ui.UiText
+import com.github.reygnn.core.ui.toUiText
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
 import com.github.reygnn.prodder.ssh.ScreenSession
@@ -92,8 +92,7 @@ class SessionsViewModel(
                         it.copy(
                             loading = false,
                             hasLoadedOnce = true,
-                            error = e.message?.let(UiText::Literal)
-                                ?: UiText.Resource(R.string.error_unknown),
+                            error = e.toUiText(),
                         )
                     }
                 }

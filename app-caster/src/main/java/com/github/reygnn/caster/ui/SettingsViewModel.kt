@@ -1,5 +1,6 @@
 package com.github.reygnn.caster.ui
 import com.github.reygnn.core.ui.UiText
+import com.github.reygnn.core.ui.toUiText
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -157,8 +158,7 @@ class SettingsViewModel(
                 }
                 .onFailure { e ->
                     _state.update {
-                        it.copy(saving = false, error = e.message?.let(UiText::Literal)
-                            ?: UiText.Resource(R.string.error_unknown))
+                        it.copy(saving = false, error = e.toUiText())
                     }
                 }
         }

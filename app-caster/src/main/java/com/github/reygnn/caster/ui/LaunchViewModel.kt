@@ -7,11 +7,13 @@ import com.github.reygnn.caster.R
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
 import com.github.reygnn.core.ssh.LogLine
+import com.github.reygnn.core.ssh.plusCapped
 import com.github.reygnn.caster.ssh.ProjectEntry
 import com.github.reygnn.caster.ssh.SshClient
 import com.github.reygnn.caster.ssh.SshConfig
 import com.github.reygnn.caster.ssh.SshjClient
 import com.github.reygnn.caster.ssh.resolveConfig
+import com.github.reygnn.core.ui.toUiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -121,8 +123,7 @@ class LaunchViewModel(
                         it.copy(
                             loading = false,
                             hasLoadedOnce = true,
-                            error = e.message?.let(UiText::Literal)
-                                ?: UiText.Resource(R.string.error_unknown),
+                            error = e.toUiText(),
                         )
                     }
                 }
@@ -207,15 +208,14 @@ class LaunchViewModel(
                 _state.update {
                     it.copy(
                         launching = null,
-                        error = e.message?.let(UiText::Literal)
-                            ?: UiText.Resource(R.string.error_unknown),
+                        error = e.toUiText(),
                     )
                 }
             }
             .collect { line ->
                 _state.update { current ->
                     current.copy(
-                        log = current.log + line,
+                        log = current.log.plusCapped(line),
                         lastExitCode = if (line is LogLine.ExitCode) line.code else current.lastExitCode,
                     )
                 }

@@ -32,14 +32,14 @@ class SshjBootstrap : SshBootstrap {
             )
             if (result.exitStatus != 0) {
                 throw IOException(
-                    "Pubkey-Push fehlgeschlagen (exit=${result.exitStatus}): " +
+                    "Pubkey push failed (exit=${result.exitStatus}): " +
                         result.stderr.ifBlank { result.stdout }
                 )
             }
         } finally {
             ssh.disconnect()
         }
-        learned ?: throw IOException("Host-Key-Fingerprint konnte nicht ermittelt werden")
+        learned ?: throw IOException("Could not determine host-key fingerprint")
     }
 
     override suspend fun verifyPubkeyAuth(config: SshConfig) = withContext(Dispatchers.IO) {
