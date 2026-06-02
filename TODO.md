@@ -14,7 +14,7 @@ Legende: 🟢 risikolos · 🟡 mittel · 🔴 größer (eigener Branch).
 
 ## Phase 1 — Cruft & Quick Wins (risikolos)
 
-- [ ] **B3 · Totes Serialization-Plugin entfernen** 🟢
+- [x] **B3 · Totes Serialization-Plugin entfernen** 🟢 (erledigt 2026-06-02)
   `alias(libs.plugins.kotlin.serialization)` aus `app-lobber`, `app-caster`,
   `app-prodder` `build.gradle.kts` entfernen; dazu Lobbers
   `implementation(libs.kotlinx.serialization.json)`.
