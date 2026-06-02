@@ -24,6 +24,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.sshj)
     implementation(libs.bouncycastle.prov)
     implementation(libs.bouncycastle.pkix)

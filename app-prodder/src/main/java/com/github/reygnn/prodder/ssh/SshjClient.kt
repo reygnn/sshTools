@@ -1,46 +1,29 @@
 package com.github.reygnn.prodder.ssh
 
-import com.github.reygnn.core.ssh.BcOpenSshKeyProvider
-import com.github.reygnn.core.ssh.TofuHostKeyVerifier
+import com.github.reygnn.core.ssh.connectWithKey
 import com.github.reygnn.core.ssh.parseScreenSessions
-import com.github.reygnn.core.ssh.readCapped
+import com.github.reygnn.core.ssh.runCommand
 import com.github.reygnn.core.ssh.shellQuote
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
-import net.schmizz.sshj.SSHClient
-import java.util.concurrent.TimeUnit
 
 class SshjClient(
     private val config: SshConfig,
     private val onLearnHostKey: (String) -> Unit = {},
 ) : SshClient {
 
-    private fun connect(): SSHClient {
-        val ssh = SSHClient()
-        ssh.addHostKeyVerifier(TofuHostKeyVerifier(config.knownHostFingerprint, onLearnHostKey))
-        ssh.connectTimeout = CONNECT_TIMEOUT_MS
-        ssh.connect(config.host, config.port)
-        ssh.authPublickey(config.username, BcOpenSshKeyProvider(config.privateKeyPem))
-        return ssh
-    }
-
-    private suspend fun SSHClient.run(command: String): Triple<Int, String, String> =
-        startSession().use { session ->
-            val cmd = session.exec(command)
-            coroutineScope {
-                val out = async(Dispatchers.IO) { cmd.inputStream.readCapped(MAX_OUTPUT_BYTES) }
-                val err = async(Dispatchers.IO) { cmd.errorStream.readCapped(MAX_OUTPUT_BYTES) }
-                val o = out.await(); val e = err.await()
-                cmd.join(15, TimeUnit.SECONDS)
-                Triple(cmd.exitStatus ?: -1, o, e)
-            }
-        }
+    private fun connect() = connectWithKey(
+        host = config.host,
+        port = config.port,
+        username = config.username,
+        privateKeyPem = config.privateKeyPem,
+        knownHostFingerprint = config.knownHostFingerprint,
+        onLearnHostKey = onLearnHostKey,
+    )
 
     override suspend fun listSessions(): List<ScreenSession> = withContext(Dispatchers.IO) {
         connect().use { ssh ->
-            val (_, out, _) = ssh.run("screen -ls || true")
+            val (_, out, _) = ssh.runCommand("screen -ls || true")
             parseSessions(out).sortedBy { it.name }
         }
     }
@@ -48,7 +31,7 @@ class SshjClient(
     override suspend fun capture(sessionId: String): String = withContext(Dispatchers.IO) {
         require(isValidSessionId(sessionId)) { "Ungültige Session-ID: $sessionId" }
         connect().use { ssh ->
-            val (_, out, _) = ssh.run(
+            val (_, out, _) = ssh.runCommand(
                 "f=\$(mktemp \"\${TMPDIR:-/tmp}/prodder.XXXXXX\") && " +
                     "screen -S ${shellQuote(sessionId)} -X hardcopy \"\$f\" && " +
                     "sleep 0.15 && cat \"\$f\"; rm -f \"\$f\""
@@ -61,15 +44,10 @@ class SshjClient(
         withContext(Dispatchers.IO) {
             require(isValidSessionId(sessionId)) { "Ungültige Session-ID: $sessionId" }
             connect().use { ssh ->
-                val (exit, _, _) = ssh.run("screen -S ${shellQuote(sessionId)} -X stuff ${shellQuote(payload)}")
+                val (exit, _, _) = ssh.runCommand("screen -S ${shellQuote(sessionId)} -X stuff ${shellQuote(payload)}")
                 exit == 0
             }
         }
-
-    private companion object {
-        const val CONNECT_TIMEOUT_MS = 10_000
-        const val MAX_OUTPUT_BYTES = 1 shl 20
-    }
 }
 
 internal fun isValidSessionId(id: String): Boolean {

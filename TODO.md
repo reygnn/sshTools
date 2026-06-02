@@ -48,19 +48,21 @@ Legende: 🟢 risikolos · 🟡 mittel · 🔴 größer (eigener Branch).
   *Akzeptanz:* eine Quelle der Wahrheit für die Token-Zerlegung; bestehende
   Parser-Tests grün.
 
-- [ ] **B4 · `SshjClient`-Connection-Scaffold nach core** 🔴
-  App-agnostisches Gerüst in `core-ssh`: Verifier setzen, `connectTimeout`,
-  stdout+stderr nebenläufig drainen (`readCapped`), `cmd.join()`. Z. B.
-  `withSshSession { … }` / ein Drain-Helper, der `Triple(exit, out, err)`
-  liefert. Die drei `SshjClient` rufen das Scaffold, behalten aber ihre
-  app-spezifischen Kommandos.
-  *Akzeptanz:* `run()`-Drain-Logik existiert nur noch einmal; alle drei Clients
-  nutzen sie; Hard Rule 3 (drainen vor `join`) bleibt eingehalten.
+- [x] **B4 · `SshjClient`-Connection-Scaffold nach core** 🔴 (erledigt 2026-06-02)
+  `core-ssh/SshSession.kt`: `connectWithKey(...)` (Verifier + Timeout + connect +
+  authPublickey) und `SSHClient.runCommand(...): CommandResult` (stdout+stderr
+  nebenläufig drainen, **await vor join** = Hard Rule 3). Alle drei `SshjClient`
+  + Lobbers `SshjBootstrap` nutzen es; die `SshConfig` bleibt pro App (Hard
+  Rule 1), nur Primitiven gehen nach core. Drain-Logik existiert nur noch
+  einmal. core-ssh hängt jetzt an `kotlinx-coroutines-core`. Nebenbei:
+  `pushPublicKey` drained jetzt nebenläufig statt sequenziell.
 
-- [ ] **A3 · Learn-Callback-Signatur vereinheitlichen** 🟡
-  Eine Variante festlegen (empfohlen: nicht-`suspend` `(String)->Unit`, im
-  Scope der Aufrufer `launch`-gewrappt) und in allen drei Clients gleich
-  anwenden. Fällt teilweise mit B4 zusammen.
+- [x] **A3 · Learn-Callback-Signatur vereinheitlichen** 🟡 (erledigt 2026-06-02)
+  Überall `onLearnHostKey: (String) -> Unit` (non-suspend), direkt an den
+  Verifier. Caster war Ausreißer (`suspend` + `AtomicReference`/`connected{}`-
+  Deferral) — auf das gemeinsame Muster umgestellt; Casters `LaunchViewModel`
+  nutzt jetzt das nullable-Property-Muster (wie Prodder) und wrappt in
+  `viewModelScope.launch { … }`.
 
 ---
 
