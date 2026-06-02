@@ -12,7 +12,6 @@
     <string name="cancel">Cancel</string>
     <string name="done">Done</string>
     <string name="install">Install</string>
-    <string name="save">Save</string>
     <string name="saving">Saving…</string>
 
     <!-- Self-install confirmation -->
@@ -28,7 +27,6 @@
     <!-- ViewModel-emitted errors -->
     <string name="error_fill_all_fields">Fill in all fields</string>
     <string name="error_unknown">Unknown error</string>
-    <string name="error_no_message">(no message)</string>
     <string name="error_adb_fields">Enter the phone IP and the current port.</string>
     <string name="error_not_configured">Configure and save the SSH connection first.</string>
     <string name="error_need_server">Add at least one server.</string>

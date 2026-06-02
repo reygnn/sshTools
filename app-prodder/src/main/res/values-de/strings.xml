@@ -8,7 +8,6 @@
 
     <!-- Common actions -->
     <string name="back">Zurück</string>
-    <string name="save">Speichern</string>
     <string name="saving">Speichern…</string>
     <string name="done">Fertig</string>
     <string name="send">Senden</string>
