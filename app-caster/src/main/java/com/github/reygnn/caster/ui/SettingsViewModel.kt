@@ -6,9 +6,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.reygnn.caster.R
 import com.github.reygnn.core.data.ConfigState
+import com.github.reygnn.core.data.ServerForm
+import com.github.reygnn.core.data.ServerFormResult
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
-import com.github.reygnn.core.data.pinToKeepFor
+import com.github.reygnn.core.data.toForm
+import com.github.reygnn.core.data.upsert
+import com.github.reygnn.core.data.validate
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,16 +25,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-/** Editor form for one server profile. [index] = null means "new server". */
-data class ServerForm(
-    val index: Int? = null,
-    val name: String = "",
-    val host: String = "",
-    val port: String = "22",
-    val username: String = "",
-    val workingDir: String = "",
-)
 
 data class SettingsUiState(
     val servers: List<ServerProfile> = emptyList(),
@@ -76,12 +70,7 @@ class SettingsViewModel(
 
     fun editServer(index: Int) {
         val p = _state.value.servers.getOrNull(index) ?: return
-        _state.update {
-            it.copy(
-                editing = ServerForm(index, p.name, p.host, p.port.toString(), p.username, p.workingDir),
-                error = null,
-            )
-        }
+        _state.update { it.copy(editing = p.toForm(index), error = null) }
     }
 
     fun cancelEdit() = _state.update { it.copy(editing = null, error = null) }
@@ -97,30 +86,19 @@ class SettingsViewModel(
 
     fun saveServer() {
         val f = _state.value.editing ?: return
-        if (f.name.isBlank() || f.host.isBlank() || f.username.isBlank() || f.workingDir.isBlank()) {
-            _state.update { it.copy(error = UiText.Resource(R.string.error_fill_all_fields)) }
-            return
-        }
-        val port = f.port.toIntOrNull()
-        if (port == null || port !in 1..65535) {
-            _state.update { it.copy(error = UiText.Resource(R.string.error_invalid_port)) }
-            return
-        }
-        val host = f.host.trim()
         val existing = f.index?.let { _state.value.servers.getOrNull(it) }
-        val profile = ServerProfile(
-            name = f.name.trim(),
-            host = host,
-            port = port,
-            username = f.username.trim(),
-            workingDir = f.workingDir.trim(),
-            knownHostFingerprint = existing.pinToKeepFor(host, port),
-        )
-        val list = _state.value.servers.toMutableList()
-        if (f.index == null) list.add(profile) else list[f.index] = profile
-        viewModelScope.launch {
-            settings.saveServers(list)
-            _state.update { it.copy(servers = list, editing = null, error = null) }
+        when (val result = f.validate(existing, requireWorkingDir = true)) {
+            ServerFormResult.EmptyFields ->
+                _state.update { it.copy(error = UiText.Resource(R.string.error_fill_all_fields)) }
+            ServerFormResult.InvalidPort ->
+                _state.update { it.copy(error = UiText.Resource(R.string.error_invalid_port)) }
+            is ServerFormResult.Valid -> {
+                val list = _state.value.servers.upsert(f.index, result.profile)
+                viewModelScope.launch {
+                    settings.saveServers(list)
+                    _state.update { it.copy(servers = list, editing = null, error = null) }
+                }
+            }
         }
     }
 
