@@ -76,16 +76,17 @@ Legende: 🟢 risikolos · 🟡 mittel · 🔴 größer (eigener Branch).
   *Akzeptanz:* `ServerRow`/`ServerEditor`/`ServerPicker`/`StatusDot` existieren
   genau einmal; Caster/Prodder-`Screens.kt` schrumpfen deutlich.
 
-- [ ] **A1 · Key-Sichtbarkeits-Toggle vereinheitlichen** 🟢
-  Im geteilten Key-Feld (B1) den Show/Hide-Toggle für alle drei Apps aktivieren.
-  *Akzeptanz:* Lobber, Caster, Prodder haben denselben Toggle.
+- [x] **A1 · Key-Sichtbarkeits-Toggle vereinheitlichen** 🟢 (erledigt 2026-06-02)
+  Show/Hide-Toggle direkt in Caster + Prodder ergänzt (wie Lobber); geht bei
+  B1 in das geteilte Key-Feld auf. *Akzeptanz erfüllt:* alle drei Apps haben
+  denselben Toggle (Strings `action_show`/`action_hide`).
 
 - [ ] **A6 · Log-Rendering nach core-ui** 🟡
   Eine `LogLine`-Composable in `core-ui` (eine `exit`-Darstellung, ein
   Scroll-Verhalten). Lobber (Install/ADB) und Caster (Launch) nutzen sie.
   *Akzeptanz:* `LogLine`-Rendering existiert einmal.
 
-- [ ] **A5 · Fingerprint-Preserve-Logik vereinheitlichen** 🟢
+- [x] **A5 · Fingerprint-Preserve-Logik vereinheitlichen** 🟢 (erledigt 2026-06-02)
   Eine Helper-Funktion (z. B. in `core-data` an `ServerProfile`): „Pin behalten,
   solange host+port unverändert". Alle drei `SettingsViewModel.saveServer()`
   rufen sie.

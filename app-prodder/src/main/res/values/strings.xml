@@ -13,6 +13,8 @@
     <string name="saving">Saving…</string>
     <string name="done">Done</string>
     <string name="send">Send</string>
+    <string name="action_show">Show</string>
+    <string name="action_hide">Hide</string>
 
     <!-- ViewModel-emitted errors -->
     <string name="error_fill_all_fields">Fill in all fields</string>

@@ -6,6 +6,7 @@ import com.github.reygnn.core.data.ConfigState
 import com.github.reygnn.core.data.DEFAULT_ADB_HOST
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
+import com.github.reygnn.core.data.pinToKeepFor
 import com.github.reygnn.core.ssh.LogLine
 import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.lobber.R
@@ -113,14 +114,11 @@ class SettingsViewModel(
             return
         }
         val host = f.host.trim()
-        val fingerprint = f.index
-            ?.let { _state.value.servers.getOrNull(it) }
-            ?.takeIf { it.host == host && it.port == port }
-            ?.knownHostFingerprint
+        val existing = f.index?.let { _state.value.servers.getOrNull(it) }
         val profile = ServerProfile(
             name = f.name.trim(), host = host, port = port,
             username = f.username.trim(), workingDir = f.workingDir.trim(),
-            knownHostFingerprint = fingerprint,
+            knownHostFingerprint = existing.pinToKeepFor(host, port),
         )
         val list = _state.value.servers.toMutableList()
         if (f.index == null) list.add(profile) else list[f.index] = profile

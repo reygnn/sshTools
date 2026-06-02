@@ -85,4 +85,32 @@ class ServerProfileTest {
 
         assertNull(decoded.knownHostFingerprint)
     }
+
+    // --- Shared: pinToKeepFor (edit-time host-key carry-over) ---
+
+    private val pinned = ServerProfile(
+        name = "LAN", host = "10.0.0.1", port = 22, username = "ci",
+        knownHostFingerprint = "SHA256:abc",
+    )
+
+    @Test
+    fun `pinToKeepFor keeps the pin when host and port are unchanged`() {
+        assertEquals("SHA256:abc", pinned.pinToKeepFor("10.0.0.1", 22))
+    }
+
+    @Test
+    fun `pinToKeepFor drops the pin when the host changed`() {
+        assertNull(pinned.pinToKeepFor("10.0.0.2", 22))
+    }
+
+    @Test
+    fun `pinToKeepFor drops the pin when the port changed`() {
+        assertNull(pinned.pinToKeepFor("10.0.0.1", 2222))
+    }
+
+    @Test
+    fun `pinToKeepFor returns null for a brand-new profile`() {
+        val new: ServerProfile? = null
+        assertNull(new.pinToKeepFor("10.0.0.1", 22))
+    }
 }

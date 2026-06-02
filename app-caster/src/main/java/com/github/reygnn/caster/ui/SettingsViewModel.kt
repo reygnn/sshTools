@@ -7,6 +7,7 @@ import com.github.reygnn.caster.R
 import com.github.reygnn.core.data.ConfigState
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
+import com.github.reygnn.core.data.pinToKeepFor
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -104,20 +105,15 @@ class SettingsViewModel(
             _state.update { it.copy(error = UiText.Resource(R.string.error_invalid_port)) }
             return
         }
-        // Preserve a learned host-key fingerprint across edits, but reset it if
-        // host or port changed — a different endpoint must re-establish trust.
-        val existing = f.index?.let { _state.value.servers.getOrNull(it) }
         val host = f.host.trim()
-        val keepFingerprint = existing
-            ?.takeIf { it.host == host && it.port == port }
-            ?.knownHostFingerprint
+        val existing = f.index?.let { _state.value.servers.getOrNull(it) }
         val profile = ServerProfile(
             name = f.name.trim(),
             host = host,
             port = port,
             username = f.username.trim(),
             workingDir = f.workingDir.trim(),
-            knownHostFingerprint = keepFingerprint,
+            knownHostFingerprint = existing.pinToKeepFor(host, port),
         )
         val list = _state.value.servers.toMutableList()
         if (f.index == null) list.add(profile) else list[f.index] = profile

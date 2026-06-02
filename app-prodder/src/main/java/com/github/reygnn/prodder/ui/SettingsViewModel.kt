@@ -7,6 +7,7 @@ import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.core.data.ConfigState
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
+import com.github.reygnn.core.data.pinToKeepFor
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -103,17 +104,13 @@ class SettingsViewModel(
             return
         }
         val host = f.host.trim()
-        // Den gepinnten Host-Key nur behalten, wenn Endpunkt (host+port)
-        // unverändert bleibt; bei Änderung zurücksetzen, damit der neue
-        // Endpunkt seinen Key frisch lernt (Name/User ändern den Pin nicht).
         val existing = f.index?.let { _state.value.servers.getOrNull(it) }
-        val keepPin = existing != null && existing.host == host && existing.port == port
         val profile = ServerProfile(
             name = f.name.trim(),
             host = host,
             port = port,
             username = f.username.trim(),
-            knownHostFingerprint = existing?.knownHostFingerprint?.takeIf { keepPin },
+            knownHostFingerprint = existing.pinToKeepFor(host, port),
         )
         val list = _state.value.servers.toMutableList()
         if (f.index == null) list.add(profile) else list[f.index] = profile

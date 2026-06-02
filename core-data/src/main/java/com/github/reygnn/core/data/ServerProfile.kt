@@ -30,3 +30,13 @@ data class ServerProfile(
     val workingDir: String = "",
     val knownHostFingerprint: String? = null,
 )
+
+/**
+ * The host-key fingerprint to carry over when an existing profile is edited into
+ * a new [host]/[port]: the pin is kept only while the endpoint (host + port) is
+ * unchanged, so a moved endpoint re-establishes trust on the next connect
+ * (renaming or changing the username keeps the pin). Returns null for a
+ * brand-new profile (null receiver). Shared by all three apps' `saveServer()`.
+ */
+fun ServerProfile?.pinToKeepFor(host: String, port: Int): String? =
+    this?.takeIf { it.host == host && it.port == port }?.knownHostFingerprint

@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.reygnn.caster.R
@@ -314,10 +315,18 @@ fun SettingsScreen(
                 stringRes(R.string.settings_key),
                 style = MaterialTheme.typography.titleMedium,
             )
+            var keyVisible by remember { mutableStateOf(false) }
             OutlinedTextField(
                 value = s.privateKeyPem, onValueChange = viewModel::onPrivateKey,
                 label = { Text(stringRes(R.string.field_private_key)) },
-                visualTransformation = PasswordVisualTransformation(),
+                // Masked by default against shoulder-surfing; a toggle reveals it
+                // for paste/verify during manual setup.
+                visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    TextButton(onClick = { keyVisible = !keyVisible }) {
+                        Text(stringRes(if (keyVisible) R.string.action_hide else R.string.action_show))
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().height(160.dp),
             )
             s.error?.let { err ->
