@@ -13,7 +13,10 @@ android {
     }
     kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21) } }
     buildFeatures { compose = true }
-    testOptions { unitTests.isReturnDefaultValues = true }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+        unitTests.isIncludeAndroidResources = true // Robolectric needs resources/manifest
+    }
 }
 
 dependencies {
@@ -24,4 +27,9 @@ dependencies {
     implementation(libs.androidx.material3)
 
     testImplementation(libs.junit)
+    // Compose UI tests under Robolectric (no device needed).
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
+    testImplementation(libs.robolectric)
+    debugImplementation(libs.androidx.ui.test.manifest) // empty activity for createComposeRule
 }

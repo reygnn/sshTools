@@ -63,10 +63,4 @@
     <string name="step_verifying">Verifying public-key login…</string>
     <string name="step_saving">Saving configuration…</string>
     <string name="step_done">Done</string>
-
-    <!-- Host-key confirmation (shown before the password is sent) -->
-    <string name="onboarding_hostkey_title">Verify host key</string>
-    <string name="onboarding_hostkey_body">First connection to %1$s. The server presented this host-key fingerprint:</string>
-    <string name="onboarding_hostkey_hint">Make sure it matches the build host (e.g. run \"ssh-keygen -lf\" on its host key there) before trusting it. Your password is only sent after you confirm.</string>
-    <string name="onboarding_hostkey_trust">Trust &amp; continue</string>
 </resources>

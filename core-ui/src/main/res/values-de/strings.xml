@@ -14,6 +14,12 @@
     <string name="cu_action_hide">Verbergen</string>
     <string name="cu_exit_unknown">unbekannt</string>
 
+    <!-- Host-key confirmation dialog (trust-on-first-use, AUDIT V4) -->
+    <string name="cu_onboarding_hostkey_title">Host-Key prüfen</string>
+    <string name="cu_onboarding_hostkey_body">Erste Verbindung zu %1$s. Der Server hat diesen Host-Key-Fingerprint präsentiert:</string>
+    <string name="cu_onboarding_hostkey_hint">Stelle sicher, dass er zum Build-Host passt (z. B. dort \"ssh-keygen -lf\" auf dem Host-Key ausführen), bevor du ihm vertraust. Dein Passwort wird erst nach der Bestätigung gesendet.</string>
+    <string name="cu_onboarding_hostkey_trust">Vertrauen &amp; fortfahren</string>
+
     <!-- Error mapping (Throwable.toUiText) -->
     <string name="cu_error_unknown">Unbekannter Fehler</string>
     <string name="cu_error_remote_command">Remote-Befehl fehlgeschlagen (Exit %1$d): %2$s</string>

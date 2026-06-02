@@ -77,10 +77,4 @@
     <string name="step_verifying">Prüfe Public-Key-Login…</string>
     <string name="step_saving">Speichere Konfiguration…</string>
     <string name="step_done">Fertig</string>
-
-    <!-- Host-Key-Bestätigung (vor dem Senden des Passworts) -->
-    <string name="onboarding_hostkey_title">Host-Key prüfen</string>
-    <string name="onboarding_hostkey_body">Erste Verbindung zu %1$s. Der Server hat diesen Host-Key-Fingerprint präsentiert:</string>
-    <string name="onboarding_hostkey_hint">Stelle sicher, dass er zum Build-Host passt (z. B. dort \"ssh-keygen -lf\" auf dem Host-Key ausführen), bevor du ihm vertraust. Dein Passwort wird erst nach der Bestätigung gesendet.</string>
-    <string name="onboarding_hostkey_trust">Vertrauen &amp; fortfahren</string>
 </resources>

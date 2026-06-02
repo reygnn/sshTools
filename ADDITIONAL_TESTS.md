@@ -152,7 +152,19 @@ Konvention „kein androidTest außer instrumentiertes Verhalten zählt wirklich
 
 ---
 
-## Tier 4 — Compose-UI (erfordert kleinen Vorab-Refactor)
+## Tier 4 — Compose-UI — ✅ teilweise implementiert
+
+> Umgesetzt: Compose-Test-Infra in core-ui (Robolectric + `createComposeRule`,
+> kein Gerät nötig). Statt jeden VM-gebundenen Screen zu zerlegen, wurde der
+> **identische** Host-Key-Dialog aus allen drei Onboarding-Screens nach core-ui
+> extrahiert (`HostKeyConfirmDialog`, stateless, `cu_…`-Strings) — entfernt die
+> Dreifach-Duplizierung *und* macht ihn testbar. Tests (8):
+> `HostKeyConfirmDialogTest` (Fingerprint sichtbar, Confirm/Cancel feuern genau
+> einen Callback — die sicherheitskritische Entscheidung) + `LogViewTest`
+> (`LogLineRow`-Rendering aller Varianten inkl. Exit-Marker).
+>
+> **Offen:** Self-Install-Dialog (Lobber) und `ServerPicker`/Auto-Scroll —
+> bräuchten je einen `…Content`-Extraktion aus den großen `Screens.kt`.
 
 **Testbarkeits-Hürde:** Die Screens nehmen die VM direkt
 (`fun OnboardingScreen(viewModel: OnboardingViewModel, …)`), nicht gehoisteten

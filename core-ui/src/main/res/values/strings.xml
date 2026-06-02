@@ -16,6 +16,13 @@
     <string name="cu_action_hide">Hide</string>
     <string name="cu_exit_unknown">unknown</string>
 
+    <!-- Host-key confirmation dialog (trust-on-first-use, AUDIT V4), shared by all
+         three apps' onboarding screens. -->
+    <string name="cu_onboarding_hostkey_title">Verify host key</string>
+    <string name="cu_onboarding_hostkey_body">First connection to %1$s. The server presented this host-key fingerprint:</string>
+    <string name="cu_onboarding_hostkey_hint">Make sure it matches the build host (e.g. run \"ssh-keygen -lf\" on its host key there) before trusting it. Your password is only sent after you confirm.</string>
+    <string name="cu_onboarding_hostkey_trust">Trust &amp; continue</string>
+
     <!-- Error mapping (Throwable.toUiText) -->
     <string name="cu_error_unknown">Unknown error</string>
     <string name="cu_error_remote_command">Remote command failed (exit %1$d): %2$s</string>

@@ -3,6 +3,7 @@ package com.github.reygnn.lobber.ui
 import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.core.ui.resolve
 import com.github.reygnn.core.ui.KeyField
+import com.github.reygnn.core.ui.HostKeyConfirmDialog
 import com.github.reygnn.core.ui.LogLineRow
 import com.github.reygnn.core.ui.ServerEditor
 import com.github.reygnn.core.ui.ServerPicker
@@ -63,7 +64,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -584,33 +584,11 @@ fun OnboardingScreen(
     // Host-key confirmation: shown after phase 1 learns the fingerprint and BEFORE
     // the password is sent. Confirming pins the key; cancelling aborts. See AUDIT V4.
     s.pendingFingerprint?.let { fingerprint ->
-        AlertDialog(
-            onDismissRequest = c::cancelHostKey,
-            title = { Text(stringResource(R.string.onboarding_hostkey_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.onboarding_hostkey_body, s.host.trim()))
-                    Text(
-                        fingerprint,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontFamily = FontFamily.Monospace,
-                    )
-                    Text(
-                        stringResource(R.string.onboarding_hostkey_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = c::confirmHostKey) {
-                    Text(stringResource(R.string.onboarding_hostkey_trust))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = c::cancelHostKey) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+        HostKeyConfirmDialog(
+            host = s.host.trim(),
+            fingerprint = fingerprint,
+            onConfirm = c::confirmHostKey,
+            onCancel = c::cancelHostKey,
         )
     }
 }

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,7 +26,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.res.stringResource
@@ -36,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.reygnn.caster.R
 import com.github.reygnn.core.onboarding.OnboardingError
 import com.github.reygnn.core.onboarding.OnboardingStep
+import com.github.reygnn.core.ui.HostKeyConfirmDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,33 +138,11 @@ fun OnboardingScreen(
     // Host-key confirmation: shown after phase 1 learns the fingerprint and BEFORE
     // the password is sent. Confirming pins the key; cancelling aborts. See AUDIT V4.
     s.pendingFingerprint?.let { fingerprint ->
-        AlertDialog(
-            onDismissRequest = c::cancelHostKey,
-            title = { Text(stringResource(R.string.onboarding_hostkey_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.onboarding_hostkey_body, s.host.trim()))
-                    Text(
-                        fingerprint,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontFamily = FontFamily.Monospace,
-                    )
-                    Text(
-                        stringResource(R.string.onboarding_hostkey_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = c::confirmHostKey) {
-                    Text(stringResource(R.string.onboarding_hostkey_trust))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = c::cancelHostKey) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+        HostKeyConfirmDialog(
+            host = s.host.trim(),
+            fingerprint = fingerprint,
+            onConfirm = c::confirmHostKey,
+            onCancel = c::cancelHostKey,
         )
     }
 }
