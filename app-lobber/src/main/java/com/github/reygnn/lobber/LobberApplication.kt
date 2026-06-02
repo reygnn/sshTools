@@ -11,6 +11,8 @@ class LobberApplication : Application() {
     lateinit var settingsStore: SettingsStore
         private set
 
+    /** App-lebenslanger Scope für Persistenz, die einen VM-Clear überleben muss
+     *  (z. B. das Pinnen eines frisch gelernten Host-Keys). */
     val applicationScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {

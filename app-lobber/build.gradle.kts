@@ -68,6 +68,5 @@ dependencies {
     implementation(libs.bouncycastle.pkix)
     runtimeOnly(libs.slf4j.nop)
 
-    testImplementation(project(":core-testing"))
-    testImplementation(libs.turbine)
+    testImplementation(project(":core-testing")) // api-exposes junit, mockk, coroutines-test, turbine
 }

@@ -18,7 +18,7 @@
     <string name="error_send_failed">Could not send input to the session</string>
     <string name="error_need_server">Add at least one server.</string>
     <string name="error_key_required">Paste the SSH key first.</string>
-    <string name="error_invalid_port">Port must be between 1 and 65535</string>
+    <string name="error_invalid_port">Port must be between 1 and 65535.</string>
 
     <!-- Server profiles (server-name/host/port/user/key labels come from core-ui) -->
     <string name="settings_servers">Servers</string>
