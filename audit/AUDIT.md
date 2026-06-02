@@ -346,7 +346,28 @@ Verhaltensschaden): TOFU accept-first/pin-async + `learnHostFingerprint`-
 Stillschweigen als bewusste Entscheidung dokumentieren + Logging; `readCapped`-
 `use{}` schließt Stream beim Cap → KDoc von `runCommand` präzisieren; `adbRunning`-
 Reset in `finally` (Lobber); Caster-Launch-Log ohne Auto-Scroll (Drift zu Lobber/
-Prodder).
+Prodder). **→ alle vier nachträglich erledigt, s. Chronik unten (Branch
+`fix/audit-r3-deferred`).**
+
+### Umsetzungs-Chronik R3-Notizen (2026-06-02, Branch `fix/audit-r3-deferred`)
+
+Die vier zurückgestellten Sehr-niedrig-Notizen am Code verifiziert (TOFU-accept-
+first war bereits via V4 erledigt) und die verbliebenen vier umgesetzt:
+
+- **Caster-Auto-Scroll** — `LaunchProgress` folgt dem Launch-Log jetzt ans Ende
+  (`rememberScrollState` + `LaunchedEffect(log.size){ scrollTo(maxValue) }`),
+  gleiche Form wie Lobbers `InstallProgress`/Prodders `ScreenSnapshot`.
+- **`adbRunning`-`finally`** — der `reconnectAdb`-Stream in Lobbers
+  `SettingsViewModel` setzt `adbRunning = false` jetzt im `finally`, überlebt also
+  auch Cancellation mitten im Stream (vorher nur Schluss-Zeile; `.catch` deckte nur
+  den Fehlerpfad).
+- **`learnHostFingerprint`-Logging** — `Log.i` beim erstmaligen Pinnen eines
+  Host-Keys (`SettingsStore`), damit ein stilles Re-Learn nach Pin-Verlust
+  diagnostizierbar ist.
+- **`runCommand`-KDoc** — dokumentiert, dass `readCapped` den Stream beim Cap
+  schließt → Ausgabe wird abgeschnitten (kein Fehler), Rest bleibt undrained.
+
+`testDebugUnitTest`/`lintDebug` grün (0 Lint-Issues, alle 7 Module).
 
 ### Umsetzungs-Chronik R1–R8 (2026-06-02, Branch `refactor/audit-r3`)
 

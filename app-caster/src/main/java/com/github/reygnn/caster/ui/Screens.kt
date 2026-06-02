@@ -41,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.stringResource
@@ -209,7 +210,11 @@ private fun LaunchProgress(
             color = MaterialTheme.colorScheme.surfaceVariant,
             modifier = Modifier.weight(1f).fillMaxWidth(),
         ) {
-            Column(Modifier.verticalScroll(rememberScrollState()).padding(12.dp)) {
+            val vScroll = rememberScrollState()
+            // Follow the streamed launch log to the latest line — matches Lobber's
+            // InstallProgress and Prodder's ScreenSnapshot (AUDIT R3 deferred note).
+            LaunchedEffect(log.size) { vScroll.scrollTo(vScroll.maxValue) }
+            Column(Modifier.verticalScroll(vScroll).padding(12.dp)) {
                 log.forEach { LogLineRow(it) }
             }
         }

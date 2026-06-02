@@ -90,7 +90,13 @@ class SettingsStore(private val context: Context) {
                     p
                 }
             }
-            if (changed) prefs[KEY_SERVERS] = json.encodeToString(updated)
+            if (changed) {
+                prefs[KEY_SERVERS] = json.encodeToString(updated)
+                // TOFU is a deliberate trust decision: log the first-use pin so a
+                // silent (re-)learn after a pin was lost is diagnosable (AUDIT R3
+                // deferred note + V3/V8 context).
+                Log.i(TAG, "Pinned host key for $host:$port (trust-on-first-use)")
+            }
         }
     }
 

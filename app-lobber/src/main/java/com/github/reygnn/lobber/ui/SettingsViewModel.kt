@@ -175,10 +175,15 @@ class SettingsViewModel(
             val target = shellQuote("$ip:$port"); val fixed = shellQuote("$ip:5555")
             val cmd = "adb connect $target ; adb tcpip 5555 ; adb connect $fixed ; adb devices -l"
             _state.update { it.copy(adbRunning = true, adbLog = emptyList(), error = null) }
-            createClient(config).executeStreaming(cmd)
-                .catch { e -> _state.update { it.copy(error = e.toUiText()) } }
-                .collect { line -> _state.update { it.copy(adbLog = it.adbLog.plusCapped(line)) } }
-            _state.update { it.copy(adbRunning = false) }
+            try {
+                createClient(config).executeStreaming(cmd)
+                    .catch { e -> _state.update { it.copy(error = e.toUiText()) } }
+                    .collect { line -> _state.update { it.copy(adbLog = it.adbLog.plusCapped(line)) } }
+            } finally {
+                // Always clear the running flag, even if the stream is cancelled
+                // mid-flight (AUDIT R3 deferred note).
+                _state.update { it.copy(adbRunning = false) }
+            }
         }
     }
 }

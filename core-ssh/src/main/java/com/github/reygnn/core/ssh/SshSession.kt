@@ -58,6 +58,11 @@ fun connectWithKey(
  * [maxOutputBytes]) and both reads are awaited **before** [cmd.join] — Hard
  * Rule 3: a full channel buffer must never be able to deadlock the command.
  * The join is bounded by [timeoutSeconds].
+ *
+ * Note: [readCapped] closes its stream once [maxOutputBytes] is reached, so a
+ * command exceeding the cap has its output *truncated* (not an error) and the
+ * remainder is left undrained — acceptable here since the cap only guards
+ * against a runaway/hostile host, and capped commands are short by design.
  */
 suspend fun SSHClient.runCommand(
     command: String,
