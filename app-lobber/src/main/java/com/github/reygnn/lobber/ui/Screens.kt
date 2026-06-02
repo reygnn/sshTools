@@ -353,6 +353,13 @@ private fun openDeveloperOptions(context: Context) {
 private val AabDateFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
+/**
+ * ADB-Status-Punkt im Installer-Header. Bewusst **nicht** core-uis [StatusDot]:
+ * der signalisiert neutralen on/off-Status (festes Grün/Grau), während hier der
+ * Aus-Zustand eine *Warnung* ist — ohne ADB schlägt der Push am Phone fehl,
+ * daher `error` statt Grau. Außerdem klickbar (springt in die
+ * Entwickleroptionen), was [StatusDot] nicht leistet.
+ */
 @Composable
 private fun AdbStatusDot(onClick: () -> Unit) {
     val status by adbStatusState()

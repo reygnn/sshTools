@@ -43,6 +43,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -66,18 +67,18 @@ fun LauncherScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringRes(R.string.launcher_title, versionName)) },
+                title = { Text(stringResource(R.string.launcher_title, versionName)) },
                 actions = {
                     IconButton(onClick = viewModel::loadProjects) {
                         Icon(
                             Icons.Default.Refresh,
-                            contentDescription = stringRes(R.string.refresh_projects),
+                            contentDescription = stringResource(R.string.refresh_projects),
                         )
                     }
                     IconButton(onClick = onOpenSettings) {
                         Icon(
                             Icons.Default.Settings,
-                            contentDescription = stringRes(R.string.open_settings),
+                            contentDescription = stringResource(R.string.open_settings),
                         )
                     }
                 },
@@ -109,7 +110,7 @@ fun LauncherScreen(
 
                     state.hasLoadedOnce && state.projects.isEmpty() ->
                         Text(
-                            stringRes(R.string.no_projects_found),
+                            stringResource(R.string.no_projects_found),
                             Modifier.align(Alignment.Center).padding(24.dp),
                         )
 
@@ -127,13 +128,13 @@ fun LauncherScreen(
     if (state.pendingRestart != null) {
         AlertDialog(
             onDismissRequest = viewModel::cancelRestart,
-            title = { Text(stringRes(R.string.restart_title)) },
-            text = { Text(stringRes(R.string.restart_body, state.pendingRestart!!)) },
+            title = { Text(stringResource(R.string.restart_title)) },
+            text = { Text(stringResource(R.string.restart_body, state.pendingRestart!!)) },
             confirmButton = {
-                TextButton(onClick = viewModel::confirmRestart) { Text(stringRes(R.string.restart)) }
+                TextButton(onClick = viewModel::confirmRestart) { Text(stringResource(R.string.restart)) }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::cancelRestart) { Text(stringRes(R.string.cancel)) }
+                TextButton(onClick = viewModel::cancelRestart) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
@@ -175,7 +176,7 @@ private fun ProjectRow(
         Column(Modifier.weight(1f)) {
             Text(project.name, style = MaterialTheme.typography.bodyLarge)
             Text(
-                stringRes(if (project.running) R.string.status_running else R.string.status_stopped),
+                stringResource(if (project.running) R.string.status_running else R.string.status_stopped),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -183,9 +184,9 @@ private fun ProjectRow(
         if (isStopping) {
             CircularProgressIndicator(Modifier.size(24.dp))
         } else if (project.running) {
-            OutlinedButton(onClick = onStop) { Text(stringRes(R.string.stop)) }
+            OutlinedButton(onClick = onStop) { Text(stringResource(R.string.stop)) }
         } else {
-            Button(onClick = onStart) { Text(stringRes(R.string.start)) }
+            Button(onClick = onStart) { Text(stringResource(R.string.start)) }
         }
     }
 }
@@ -200,7 +201,7 @@ private fun LaunchProgress(
 ) {
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text(
-            stringRes(R.string.launching_project, project),
+            stringResource(R.string.launching_project, project),
             style = MaterialTheme.typography.titleMedium,
         )
         Spacer(Modifier.size(12.dp))
@@ -215,7 +216,7 @@ private fun LaunchProgress(
         Spacer(Modifier.size(12.dp))
         if (finished) {
             Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text(stringRes(R.string.back))
+                Text(stringResource(R.string.back))
             }
         } else {
             Row(
@@ -242,9 +243,9 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringRes(R.string.settings_title)) },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text(stringRes(R.string.back)) }
+                    TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
                 },
             )
         },
@@ -256,7 +257,7 @@ fun SettingsScreen(
         ) {
             // ── Server-Profile ──
             Text(
-                stringRes(R.string.settings_servers),
+                stringResource(R.string.settings_servers),
                 style = MaterialTheme.typography.titleMedium,
             )
             s.servers.forEachIndexed { i, server ->
@@ -269,7 +270,7 @@ fun SettingsScreen(
             }
             if (s.editing == null) {
                 TextButton(onClick = viewModel::addServer, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringRes(R.string.add_server))
+                    Text(stringResource(R.string.add_server))
                 }
             } else {
                 val form = s.editing!!
@@ -279,7 +280,7 @@ fun SettingsScreen(
                     port = form.port,
                     username = form.username,
                     workingDir = form.workingDir,
-                    workingDirLabel = stringRes(R.string.field_working_dir),
+                    workingDirLabel = stringResource(R.string.field_working_dir),
                     onName = viewModel::onEditName,
                     onHost = viewModel::onEditHost,
                     onPort = viewModel::onEditPort,
@@ -294,7 +295,7 @@ fun SettingsScreen(
 
             // ── Geteilter SSH-Key (alle Profile) ──
             Text(
-                stringRes(R.string.settings_key),
+                stringResource(R.string.settings_key),
                 style = MaterialTheme.typography.titleMedium,
             )
             KeyField(value = s.privateKeyPem, onValueChange = viewModel::onPrivateKey)
@@ -306,12 +307,9 @@ fun SettingsScreen(
                 enabled = !s.saving,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringRes(if (s.saving) R.string.saving else R.string.done))
+                Text(stringResource(if (s.saving) R.string.saving else R.string.done))
             }
         }
     }
 }
 
-@Composable
-private fun stringRes(id: Int, vararg args: Any): String =
-    androidx.compose.ui.res.stringResource(id, *args)

@@ -51,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -75,13 +76,13 @@ fun SessionsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringRes(R.string.sessions_title, versionName)) },
+                title = { Text(stringResource(R.string.sessions_title, versionName)) },
                 actions = {
                     IconButton(onClick = viewModel::loadSessions) {
-                        Icon(Icons.Default.Refresh, contentDescription = stringRes(R.string.refresh_sessions))
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh_sessions))
                     }
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = stringRes(R.string.open_settings))
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.open_settings))
                     }
                 },
             )
@@ -109,7 +110,7 @@ fun SessionsScreen(
 
                     state.hasLoadedOnce && state.sessions.isEmpty() ->
                         Text(
-                            stringRes(R.string.no_sessions_found),
+                            stringResource(R.string.no_sessions_found),
                             Modifier.align(Alignment.Center).padding(24.dp),
                         )
 
@@ -145,7 +146,7 @@ private fun SessionRow(session: ScreenSession, onClick: () -> Unit) {
         Column(Modifier.weight(1f)) {
             Text(session.name, style = MaterialTheme.typography.bodyLarge)
             Text(
-                stringRes(if (session.attached) R.string.status_attached else R.string.status_detached),
+                stringResource(if (session.attached) R.string.status_attached else R.string.status_detached),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -186,17 +187,17 @@ fun SessionScreen(
             TopAppBar(
                 title = { Text(state.sessionName) },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text(stringRes(R.string.back)) }
+                    TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
                 },
                 actions = {
                     FilterChip(
                         selected = state.autoRefresh,
                         onClick = viewModel::toggleAutoRefresh,
-                        label = { Text(stringRes(R.string.auto_refresh)) },
+                        label = { Text(stringResource(R.string.auto_refresh)) },
                         modifier = Modifier.padding(end = 8.dp),
                     )
                     IconButton(onClick = viewModel::refresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = stringRes(R.string.refresh_screen))
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh_screen))
                     }
                 },
             )
@@ -236,7 +237,7 @@ private fun ScreenSnapshot(text: String, loadingFirst: Boolean, modifier: Modifi
                 LaunchedEffect(text) { vScroll.scrollTo(vScroll.maxValue) }
                 Column(Modifier.fillMaxSize().verticalScroll(vScroll).padding(12.dp)) {
                     Text(
-                        text = text.ifEmpty { stringRes(R.string.empty_screen) },
+                        text = text.ifEmpty { stringResource(R.string.empty_screen) },
                         fontFamily = FontFamily.Monospace,
                         style = MaterialTheme.typography.bodySmall,
                         softWrap = false,
@@ -254,7 +255,7 @@ private fun QuickKeys(enabled: Boolean, viewModel: SessionViewModel) {
         AssistChip(
             onClick = viewModel::sendEnter,
             enabled = enabled,
-            label = { Text(stringRes(R.string.key_enter)) },
+            label = { Text(stringResource(R.string.key_enter)) },
         )
         AssistChip(
             onClick = { viewModel.send("y") },
@@ -269,7 +270,7 @@ private fun QuickKeys(enabled: Boolean, viewModel: SessionViewModel) {
         AssistChip(
             onClick = viewModel::sendCtrlC,
             enabled = enabled,
-            label = { Text(stringRes(R.string.key_ctrl_c)) },
+            label = { Text(stringResource(R.string.key_ctrl_c)) },
         )
     }
 }
@@ -281,7 +282,7 @@ private fun InputRow(enabled: Boolean, onSend: (String) -> Unit) {
         OutlinedTextField(
             value = text,
             onValueChange = { text = it },
-            label = { Text(stringRes(R.string.input_label)) },
+            label = { Text(stringResource(R.string.input_label)) },
             singleLine = true,
             modifier = Modifier.weight(1f),
         )
@@ -292,7 +293,7 @@ private fun InputRow(enabled: Boolean, onSend: (String) -> Unit) {
                 onSend(text)
                 text = ""
             },
-        ) { Text(stringRes(R.string.send)) }
+        ) { Text(stringResource(R.string.send)) }
     }
 }
 
@@ -310,9 +311,9 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringRes(R.string.settings_title)) },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text(stringRes(R.string.back)) }
+                    TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
                 },
             )
         },
@@ -322,7 +323,7 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringRes(R.string.settings_servers), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.settings_servers), style = MaterialTheme.typography.titleMedium)
             s.servers.forEachIndexed { i, server ->
                 ServerRow(
                     name = server.name,
@@ -333,7 +334,7 @@ fun SettingsScreen(
             }
             if (s.editing == null) {
                 TextButton(onClick = viewModel::addServer, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringRes(R.string.add_server))
+                    Text(stringResource(R.string.add_server))
                 }
             } else {
                 val form = s.editing!!
@@ -357,7 +358,7 @@ fun SettingsScreen(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-            Text(stringRes(R.string.settings_key), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.settings_key), style = MaterialTheme.typography.titleMedium)
             KeyField(value = s.privateKeyPem, onValueChange = viewModel::onPrivateKey)
             s.error?.let { err ->
                 Text(err.resolve(), color = MaterialTheme.colorScheme.error)
@@ -367,12 +368,9 @@ fun SettingsScreen(
                 enabled = !s.saving,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringRes(if (s.saving) R.string.saving else R.string.done))
+                Text(stringResource(if (s.saving) R.string.saving else R.string.done))
             }
         }
     }
 }
 
-@Composable
-private fun stringRes(id: Int, vararg args: Any): String =
-    androidx.compose.ui.res.stringResource(id, *args)
