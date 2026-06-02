@@ -1,8 +1,8 @@
 # MEMORY — Projekt-Handoff sshTools
 
 Kurznotiz für den Wiedereinstieg (auch nach einem Kontext-Reset). Ergänzt — nicht
-ersetzt — `CLAUDE.md` (Konventionen), `audit/AUDIT.md` (Befunde) und `TODO.md`
-(Fortschritt). Stand: **2026-06-02**.
+ersetzt — `CLAUDE.md` (Konventionen) und `audit/AUDIT.md` (Befunde +
+Umsetzungs-Chronik). Stand: **2026-06-02**.
 Versionen: Lobber 0.6.1 (29), Caster 0.5.1 (9), Prodder 0.2.1 (6).
 
 ---
@@ -11,8 +11,8 @@ Versionen: Lobber 0.6.1 (29), Caster 0.5.1 (9), Prodder 0.2.1 (6).
 
 Zwei aufeinanderfolgende **core-Konsolidierungen** sind abgeschlossen:
 
-1. **Erste Runde** (alte Audit-Taxonomie A1–A8/B1–B4, in `TODO.md` abgehakt):
-   geteilte UI-/SSH-/Parsing-Primitive nach `core-*`.
+1. **Erste Runde** (alte Audit-Taxonomie A1–A8/B1–B4): geteilte UI-/SSH-/
+   Parsing-Primitive nach `core-*`.
 2. **Zweites Audit** (`audit/AUDIT.md`, Funde #1–#12, Umsetzungs-Chronik
    `c638f70 … 1c9ac4f`): typisierte/lokalisierte SSH-Fehler, Streaming-Log-Cap,
    Lobber-Lifecycle an Caster/Prodder angeglichen, und die Server-Form-/Selection-
@@ -93,4 +93,3 @@ Drift zu vermeiden** — ohne Hard Rule 1 zu verletzen.
 - Konventionen + Hard Rules: `CLAUDE.md`
 - Audit-Funde + Umsetzungs-Chronik (Status je Fund, Abschnitt E „bewusst nicht
   anfassen"): `audit/AUDIT.md`
-- Aufgaben-Tracking der ersten Konsolidierungsrunde (abgehakt): `TODO.md`
