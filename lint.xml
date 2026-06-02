@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Deliberate SDK-36-only baseline (see CLAUDE.md): minSdk = targetSdk =
+         compileSdk = 36, no preview-SDK tracking. Silence the "newer SDK
+         available" nags rather than drift off the pinned baseline. -->
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="OldTargetApi" severity="ignore" />
+    <!-- The empty checkServerTrusted lives in BouncyCastle's bcpkix-jdk18on (a
+         TLS/PKIX trust manager). These apps speak SSH only — host identity is
+         pinned trust-on-first-use via TofuHostKeyVerifier — and never open a TLS
+         X509 connection, so this library class is never exercised. -->
+    <issue id="TrustAllX509TrustManager" severity="ignore" />
+</lint>
