@@ -312,3 +312,139 @@ Abweichungen vom ursprünglichen Plan: #2 und #5 wurden zusammen umgesetzt (geme
 VM-Dateien); statt eines `ServerListEditor`-Vollobjekts wurde die *Logik* (Validierung,
 Pin-Erhalt, Upsert) extrahiert und die triviale State-Plumbing bewusst pro VM belassen
 — gleiche Drift-Reduktion ohne Screen-/Test-Churn.
+
+---
+
+# Runde 3 (2026-06-02)
+
+**Umfang:** frischer Durchgang auf dem Stand nach `7fc3f9d` — drei parallele Lese-
+durchläufe (core-Module / App-VMs+SSH / Build+Manifest+Strings+Tests), die zentralen
+Funde gegengelesen. Versionen unverändert (Lobber 0.6.1, Caster 0.5.1, Prodder 0.2.1).
+
+**Gesamtbild:** weiterhin sehr gesund. Die 12 Funde der zweiten Runde sind verifiziert
+erledigt; EN/DE-Parität vollständig, Hard Rules durchgängig respektiert, Manifeste/
+ProGuard/Build sauber. **Keine kritischen Bugs, kein Release-Blocker.** Der gewichtigste
+Fund ist ein Lifecycle-/Concurrency-Thema in Prodders Session-Auto-Refresh; der Rest
+sind zwei kleine Lokalisierungs-Lecks, ein Parsing-Edge-Case und Hygiene/Test-Lücken.
+
+Alle Funde sind Hard-Rule-1-konform — keine Empfehlung zieht App-SSH-Typen
+(`SshConfig`/`SshClient`/`SshjClient`/`resolveConfig()`) nach `core-ssh`.
+
+| # | Fund | Typ | Schwere | Status |
+|---|------|-----|---------|--------|
+| R1 | Prodder Auto-Refresh läuft im Hintergrund weiter (`LaunchedEffect` nicht lifecycle-bewusst) | Lifecycle/Robustheit | **mittel–hoch** | offen |
+| R2 | `SessionViewModel.refresh()` ohne In-Flight-Guard → überlappende Captures | Concurrency | mittel | offen |
+| R3 | Caster: deutscher Erfolgs-Stdout `'… gestartet'` umgeht Lokalisierung (Erfolgspfad) | Drift/L10n | mittel | offen |
+| R4 | `parseScreenSessions`: „attached" wird auf der ganzen Zeile geprüft (Namens-Token) | Parsing-Bug | niedrig–mittel | offen |
+| R5 | `readServers` verwirft ganze Profilliste bei einem defekten Eintrag, still | Robustheit | niedrig | offen |
+| R6 | `data_extraction_rules.xml` driftet zwischen den drei Apps | Hygiene/Drift | niedrig | offen |
+| R7 | Tote Reste: `ui.tooling.preview`-Dep, `testInstrumentationRunner`, ungenutzte `flow.first`-Imports | Hygiene | niedrig | offen |
+| R8 | Test-Lücken in geteilter core-Logik (`serverSelectionState`-Clamp, `toUiText()`-Fallback) | Test | niedrig | offen |
+
+Sehr-niedrig-Notizen (Doku/Robustheit, optional): TOFU accept-first/pin-async +
+`learnHostFingerprint`-Stillschweigen als bewusste Entscheidung dokumentieren +
+Logging; `readCapped`-`use{}` schließt Stream beim Cap → KDoc von `runCommand`
+präzisieren; `adbRunning`-Reset in `finally` (Lobber); Caster-Launch-Log ohne
+Auto-Scroll (Drift zu Lobber/Prodder).
+
+---
+
+## R1. Prodder Auto-Refresh läuft im Hintergrund weiter — *Schwere: mittel–hoch*
+
+`app-prodder/.../ui/Screens.kt:178` (`SessionScreen`).
+
+Der Auto-Refresh ist ein nacktes
+`LaunchedEffect(state.autoRefresh, state.sessionId) { while (...) { delay(2000); viewModel.refresh() } }`.
+`LaunchedEffect` ist **nicht** lifecycle-bewusst: beim Backgrounding der Activity wird
+die Composition nur gestoppt (nicht disposed), die Schleife läuft weiter und feuert
+weiterhin alle 2 s ein `capture()` — also alle 2 s eine neue SSH-Connection gegen den
+Build-Host, während die App unsichtbar ist. Das widerspricht dem in Runde 2 (#3)
+etablierten „bei Background aufhören"-Muster. Der Doc-Kommentar („verlässt er den
+Screen, wird der LaunchedEffect gecancelt") gilt nur bei Navigation weg vom Composable,
+nicht beim Backgrounding.
+
+**Empfehlung:** Auto-Refresh an den Lifecycle koppeln (Polling endet bei `ON_PAUSE`/
+`ON_STOP`, läuft bei `ON_RESUME` wieder an).
+
+## R2. `SessionViewModel.refresh()` ohne In-Flight-Guard — *Schwere: mittel*
+
+`app-prodder/.../ui/SessionViewModel.kt:70`.
+
+`refresh()` startet bedingungslos `viewModelScope.launch { … capture(id) }` — kein
+`if (loading) return` (anders als `loadSessions`/`loadProjects`/`loadAabs`). Trigger,
+die überlappen können: Auto-Tick (2 s), manueller Button, `sendRaw(...)`-Nachlauf.
+Dauert ein `capture` > 2 s, stapeln sich Connections; der zuletzt zurückkehrende
+gewinnt das State-Update (Last-Writer-wins → potenziell veralteter Snapshot).
+
+**Empfehlung:** `if (_state.value.loading) return` am Anfang von `refresh()`.
+
+## R3. Caster: deutscher Erfolgs-Stdout umgeht Lokalisierung — *Schwere: mittel*
+
+`app-caster/.../ssh/SshjClient.kt:52`.
+
+`startStreaming` hängt `echo 'screen-session ${sessionName} gestartet'` an, dessen
+Ausgabe als `LogLine.Stdout` live ins Launch-Log gerendert wird. Hartkodiertes Deutsch
+auf dem **Erfolgspfad** — Fund #2 betraf nur die *Fehler*texte über `toUiText()`.
+Erscheint auch im EN-Locale unverändert, verstößt gegen die Localization-Linie.
+
+**Empfehlung:** auf Englisch ziehen (`'screen session ${sessionName} started'`) oder
+entfernen (Exit-Code 0 signalisiert den Start bereits).
+
+## R4. `parseScreenSessions`: „attached"-Prüfung auf ganzer Zeile — *Schwere: niedrig–mittel*
+
+`core-ssh/.../ScreenSessions.kt:31`.
+
+`val attached = line.contains("attached", ignoreCase = true)` prüft die ganze Zeile
+inkl. Namens-Token. Eine Session mit „attached" im Namen (`999.attached-build`) wird
+fälschlich als attached gemeldet, auch wenn `screen` `(Detached)` ausgibt. (Der
+reguläre Detached-Fall kippt nicht — „Detached" enthält „attached" nicht.) Prodder
+zeigt dann eine detachte Session als attached; Caster unbetroffen (mappt nur Namen).
+
+**Empfehlung:** Zustand nur aus dem Teil *nach* dem Token prüfen
+(`line.substringAfter('\t')…`), Test mit `42.attached-thing\t…(Detached)` ergänzen.
+
+## R5. `readServers` verwirft ganze Liste bei einem defekten Eintrag — *Schwere: niedrig*
+
+`core-data/.../SettingsStore.kt:190`.
+
+Die gesamte `servers`-JSON wird in einem `runCatching{ … }.getOrDefault(emptyList())`
+dekodiert. Ein einzelner defekter Eintrag (Teil-Schreibfehler, manuelle Manipulation)
+liefert `emptyList()` → App wirkt „nicht konfiguriert", der Nutzer verliert (gefühlt)
+**alle** Profile. Kein Log.
+
+**Empfehlung:** mind. `Log.w(TAG, …)` im Fehlerzweig, damit der Decode-Fehler
+diagnostizierbar ist.
+
+## R6. `data_extraction_rules.xml` driftet zwischen den Apps — *Schwere: niedrig*
+
+`app-{lobber,caster,prodder}/.../res/xml/data_extraction_rules.xml`. Funktional
+gleichwertig (alle halten App-Daten aus beiden Backup-Kanälen), aber strukturell
+uneinheitlich: Lobber 4 Domains (`file`/`sharedpref`/`database`/`external`), Caster 2,
+Prodder 2 + `path="."`; Kommentare mal EN, mal DE. Klassischer Copy-Paste-Drift.
+
+**Empfehlung:** kanonische Fassung (Lobber-Variante ist die defensivste) in alle drei
+kopieren, EN-Kommentar.
+
+## R7. Tote Build-/Code-Reste — *Schwere: niedrig*
+
+- `implementation(libs.androidx.ui.tooling.preview)` in allen drei App-Builds (`:60`),
+  aber **kein** `@Preview` im ganzen Projekt. (`debugImplementation(ui.tooling)` bleibt.)
+- `testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"` (`:16`), aber
+  kein `androidTest`-Source-Set und keine `androidx.test`-Dep (Template-Rest).
+- Ungenutzte `import kotlinx.coroutines.flow.first` in `LaunchViewModel`,
+  `SessionsViewModel`, `SessionViewModel` (die `first()`-Aufrufe leben jetzt in
+  `resolveConfig()`/`serverSelectionState`).
+
+**Empfehlung:** alle drei entfernen.
+
+## R8. Test-Lücken in geteilter core-Logik — *Schwere: niedrig*
+
+- `core-data/.../ServerSelection.kt:25` — das `coerceIn`-Clamping (Index außerhalb der
+  Liste / leere Liste) wird von keinem Test ausgeführt (alle VM-Tests stubben
+  `selectedIndex = 0`). `ServerSelection` hat kein eigenes Test-Set.
+- `core-ui/.../ErrorText.kt:17` — `Throwable.toUiText()`: nur der
+  `RemoteCommandException`-Zweig (Caster) ist getestet; der Blank-Message-Fallback
+  (`cu_error_unknown`) nirgends. `core-ui` hat kein Test-Source-Set.
+
+**Empfehlung:** je ein kleiner core-Test (`ServerSelectionTest`, `ErrorTextTest` oder
+`toUiText` testbar nach core-data) deckt den Pfad für alle drei Apps ab.
