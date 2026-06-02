@@ -58,6 +58,8 @@
     <string name="open_settings">Open settings</string>
     <string name="no_aabs_found">No .aab found in working dir.</string>
     <string name="installing_aab">Installing %1$s</string>
+    <string name="install_succeeded">Installation complete</string>
+    <string name="install_failed">Installation failed (exit %1$s)</string>
     <string name="adb_status_active">ADB debugging is active</string>
     <string name="adb_status_inactive">ADB debugging is off — installs from the build host won\'t reach this phone</string>
 

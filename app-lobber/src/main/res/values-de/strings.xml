@@ -58,6 +58,8 @@
     <string name="open_settings">Einstellungen öffnen</string>
     <string name="no_aabs_found">Keine .aab im Arbeitsverzeichnis gefunden.</string>
     <string name="installing_aab">Installiere %1$s</string>
+    <string name="install_succeeded">Installation abgeschlossen</string>
+    <string name="install_failed">Installation fehlgeschlagen (Exit %1$s)</string>
     <string name="adb_status_active">ADB-Debugging ist aktiv</string>
     <string name="adb_status_inactive">ADB-Debugging ist aus — Installationen vom Build-Host erreichen dieses Telefon nicht</string>
 

@@ -280,6 +280,7 @@ fun InstallerScreen(
                         aab = s.installing!!,
                         log = s.log,
                         finished = s.installFinished,
+                        exitCode = s.lastExitCode,
                         onDismiss = viewModel::dismissInstall,
                     )
                     !s.hasLoadedOnce -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -432,6 +433,7 @@ private fun InstallProgress(
     aab: String,
     log: List<LogLine>,
     finished: Boolean,
+    exitCode: Int?,
     onDismiss: () -> Unit,
 ) {
     val listState = rememberLazyListState()
@@ -446,6 +448,16 @@ private fun InstallProgress(
             items(log) { line -> LogLineRow(line) }
         }
         if (finished) {
+            Spacer(Modifier.height(8.dp))
+            // The streaming exit code is the only failure signal — a non-zero (or
+            // null = connection dropped) code otherwise reads as success. See AUDIT V1.
+            val ok = exitCode == 0
+            Text(
+                text = if (ok) stringResource(R.string.install_succeeded)
+                else stringResource(R.string.install_failed, exitCode?.toString() ?: "—"),
+                color = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+            )
             Spacer(Modifier.height(8.dp))
             Button(
                 onClick = onDismiss,

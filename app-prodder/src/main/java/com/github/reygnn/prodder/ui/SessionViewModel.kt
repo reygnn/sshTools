@@ -107,6 +107,11 @@ class SessionViewModel(
     private fun sendRaw(payload: String) {
         val id = _state.value.sessionId
         if (id.isEmpty()) return
+        // Kein zweites `stuff`, solange eines unterwegs ist — die QuickKeys-Chips
+        // und der Send-Button sind getrennte Widgets, schnelle Taps könnten sonst
+        // zwei `stuff`-Payloads verschränkt und out-of-order senden. Das UI-`enabled`
+        // allein reicht nicht (Race vor dem State-Flip). Siehe AUDIT V7.
+        if (_state.value.sending) return
         viewModelScope.launch {
             val config = settings.resolveConfig() ?: return@launch
             _state.update { it.copy(sending = true, error = null) }

@@ -11,6 +11,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -107,6 +108,21 @@ class SessionViewModelTest {
             val s = expectMostRecentItem()
             assertEquals(UiText.Resource(R.string.error_send_failed), s.error)
         }
+    }
+
+    @Test
+    fun `a second send while one is in flight is ignored`() = runTest(mainDispatcherRule.dispatcher) {
+        // Gate the first sendInput so it stays in-flight (sending = true) while the
+        // second send is issued — the guard must drop it (AUDIT V7).
+        val gate = CompletableDeferred<Boolean>()
+        coEvery { client.sendInput(id, any()) } coAnswers { gate.await() }
+        vm.bind(id, "demo")
+
+        vm.send("1")   // suspends inside sendInput, sending = true
+        vm.send("2")   // must be ignored by the in-flight guard
+        gate.complete(true)
+
+        coVerify(exactly = 1) { client.sendInput(id, any()) }
     }
 
     @Test

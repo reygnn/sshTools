@@ -14,6 +14,7 @@ import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -141,6 +142,23 @@ class OnboardingViewModelTest {
             assertEquals(OnboardingStep.Idle, final.step)
         }
         coVerify(exactly = 0) { bootstrap.pushPublicKey(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a second start while one is in flight is ignored`() = runTest(mainDispatcherRule.dispatcher) {
+        // Gate pushPublicKey so the first run stays at PushingKey while a second
+        // start() is issued — the guard must drop it, so no duplicate authorized_keys
+        // push / done-event (AUDIT V10).
+        val gate = CompletableDeferred<String>()
+        coEvery { bootstrap.pushPublicKey(any(), any(), any(), any(), any()) } coAnswers { gate.await() }
+        fillForm()
+
+        vm.start()   // suspends inside pushPublicKey, step = PushingKey
+        vm.start()   // must be ignored by the in-flight guard
+        gate.complete("SHA256:testfp")
+
+        vm.state.test { assertEquals(OnboardingStep.Done, expectMostRecentItem().step) }
+        coVerify(exactly = 1) { bootstrap.pushPublicKey(any(), any(), any(), any(), any()) }
     }
 
     @Test

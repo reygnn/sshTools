@@ -30,8 +30,11 @@ class SshjClient(
 
     override suspend fun listAabs(): List<AabEntry> = withContext(Dispatchers.IO) {
         connect().use { ssh ->
+            // LC_ALL=C pins the numeric locale so `%T@`'s fractional part uses a
+            // dot (not a comma on e.g. de_DE hosts) — otherwise parseFindPrintfLine
+            // drops every entry. See AUDIT V2.
             val (exit, out, err) = ssh.runCommand(
-                "find -L ${pathQuote(config.workingDir)} -maxdepth 1 -name '*.aab' -type f -printf '%T@\\t%p\\n'"
+                "LC_ALL=C find -L ${pathQuote(config.workingDir)} -maxdepth 1 -name '*.aab' -type f -printf '%T@\\t%p\\n'"
             )
             if (exit != 0) throw RemoteCommandException(exit, err.trim())
             out.lineSequence().filter { it.isNotBlank() }

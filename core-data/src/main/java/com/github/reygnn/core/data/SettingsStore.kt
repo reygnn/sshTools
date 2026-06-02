@@ -157,7 +157,15 @@ class SettingsStore(private val context: Context) {
         val raw = keyFile.readText().trim()
         if (raw.isEmpty()) return null
         if (raw.startsWith("-----")) return raw
-        return runCatching { KeyVault.decrypt(Base64.getDecoder().decode(raw)) }.getOrNull()
+        return runCatching { KeyVault.decrypt(Base64.getDecoder().decode(raw)) }
+            .getOrElse { e ->
+                // A GCM auth-tag failure here means the key blob was tampered with;
+                // other failures mean the Keystore key was wiped. Both currently
+                // degrade to "not configured" — at least log it so the failure is
+                // distinguishable from "no key yet" (cf. R5). See AUDIT V8.
+                Log.w(TAG, "Stored key blob failed to decrypt/authenticate", e)
+                null
+            }
     }
 
     /**

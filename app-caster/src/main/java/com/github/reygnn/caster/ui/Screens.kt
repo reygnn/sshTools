@@ -215,6 +215,16 @@ private fun LaunchProgress(
         }
         Spacer(Modifier.size(12.dp))
         if (finished) {
+            // The streaming exit code is the only failure signal — a non-zero (or
+            // null = connection dropped) code otherwise reads as success. See AUDIT V1.
+            val ok = exitCode == 0
+            Text(
+                text = if (ok) stringResource(R.string.launch_succeeded)
+                else stringResource(R.string.launch_failed, exitCode?.toString() ?: "—"),
+                color = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(Modifier.size(12.dp))
             Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.back))
             }

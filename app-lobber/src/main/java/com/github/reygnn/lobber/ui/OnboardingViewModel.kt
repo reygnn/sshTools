@@ -49,6 +49,10 @@ class OnboardingViewModel(
 
     fun start() {
         val s = _state.value
+        // In-flight guard: a second tap in the window before `step` flips would
+        // otherwise launch a second pipeline (duplicate authorized_keys entry +
+        // double done-event). See AUDIT V10.
+        if (s.step != OnboardingStep.Idle) return
         if (s.host.isBlank() || s.username.isBlank() || s.password.isBlank() || s.workingDir.isBlank()) {
             _state.update { it.copy(error = UiText.Resource(R.string.error_fill_all_fields)) }
             return

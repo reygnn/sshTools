@@ -469,3 +469,308 @@ kopieren, EN-Kommentar.
 
 **Empfehlung:** je ein kleiner core-Test (`ServerSelectionTest`, `ErrorTextTest` oder
 `toUiText` testbar nach core-data) deckt den Pfad für alle drei Apps ab.
+
+---
+
+# Runde 4 — vertieftes Audit (2026-06-02)
+
+**Umfang:** bewusst *anderer* Blickwinkel als Runden 1–3 (die auf Drift/Duplikate
+zielten). Vier parallele Tiefen-Lesedurchläufe — Crypto/SSH-Security, Concurrency/
+Lifecycle/Resource-Leaks, SSH-Kommando-/Parsing-Korrektheit, Persistenz/Build/Test —
+mit anschließender Eigen-Verifikation der gewichtigsten Funde am echten Code (nicht
+nur Agenten-Report). Versionen unverändert (Lobber 0.6.1, Caster 0.5.1, Prodder 0.2.1).
+Alle R1–R8-Fixes als vorhanden bestätigt.
+
+**Gesamtbild:** weiterhin **kein Release-Blocker, kein bestätigtes Sicherheitsleck**.
+Quoting (`shellQuote`/`pathQuote`) ist durchgängig korrekt, GCM-IV-Handling sauber
+(Provider-generierte IV, kein Fixed-IV), TOFU-Vergleich konstant-zeitig, R8/ProGuard-
+Keeps für sshj/BouncyCastle/Serialization adäquat (sshj nutzt kein `META-INF/services`,
+BC wird direkt via `insertProviderAt` registriert — ServiceLoader-Stripping irrelevant).
+Die neuen Funde sind **Funktions-/Robustheits-Lücken**, die die drift-fokussierten
+Runden nicht im Visier hatten — der gewichtigste ist, dass der **Streaming-Exit-Code
+nie ausgewertet wird** (fehlgeschlagene Installs/Launches sehen erfolgreich aus).
+
+Drei Agenten fanden **unabhängig** denselben Host-Key-Pin-Race (V3) — starkes Signal.
+
+Alle Empfehlungen sind Hard-Rule-1-konform (kein App-SSH-Typ wandert nach `core-ssh`;
+Konsolidierungsvorschläge zielen auf `core-data`/`core-ui`).
+
+| # | Fund | Typ | Schwere | Status |
+|---|------|-----|---------|--------|
+| V1 | Streaming-Exit-Code wird nie ausgewertet → fehlgeschlagene Install/Launch sehen erfolgreich aus | Korrektheit | **mittel–hoch** | ✅ Quick-Win |
+| V2 | `find -printf '%T@'` locale-abhängiges Dezimal-Trennzeichen → AABs verschwinden lautlos | Korrektheit/Robustheit | mittel | ✅ Quick-Win |
+| V3 | `SettingsViewModel`-CRUD überschreibt asynchron gelernten Host-Key-Pin (stale Snapshot) | Concurrency/Security | mittel | offen |
+| V4 | Onboarding sendet Passwort an noch *unverifizierten* Host (TOFU-First-Use-Secrecy) | Security | mittel (inhärent) | offen |
+| V5 | Streaming-Reader (`lineSequence()`) nicht cancellation-fähig → verzögerter `.use{}`-Teardown | Resource/Robustheit | niedrig–mittel | offen |
+| V6 | Prodder `capture`/hardcopy: Exit-Code verworfen + fixe `sleep 0.15` → leerer Schirm als „Erfolg" | Korrektheit | niedrig–mittel | ✅ Quick-Win (Exit-Check; `sleep` als Limit belassen) |
+| V7 | Prodder `sendRaw` ohne In-Flight-Guard → überlappende `stuff`-Payloads (Tastendreher) | Concurrency | niedrig–mittel | ✅ Quick-Win |
+| V8 | Decrypt-Fehler des at-rest-Keys lautlos zu „nicht konfiguriert" (GCM-Tag-Failure = Tampering) | Security/Robustheit | niedrig | ✅ Quick-Win (Log.w) |
+| V9 | `screen -ls || true` / `aabContainsPackage` maskieren echte Fehler (fail-open) | Robustheit | niedrig | offen |
+| V10 | `OnboardingViewModel.start()` ohne In-Flight-Guard → Doppel-Pipeline / doppelter `authorized_keys` | Concurrency | niedrig | ✅ Quick-Win |
+| V11 | `KeyVault` + `readDecryptedKey`-Verzweigungen ohne Test | Test | niedrig | offen |
+
+### Umsetzungs-Chronik Quick-Wins (2026-06-02, Branch `fix/audit-r4-quickwins`)
+
+- **V1** — `InstallProgress`/`LaunchProgress` zeigen jetzt eine Erfolg-/Fehler-Statuszeile
+  aus `lastExitCode` (≠ 0 oder `null` = Fehler, `colorScheme.error`); neue Strings
+  `install_succeeded/failed` + `launch_succeeded/failed` (EN+DE).
+- **V2** — `LC_ALL=C` vor `find` (Lobber+Caster) und allen `screen -ls` (Caster+Prodder).
+- **V6** — Prodder `capture`: `rc=$?; rm -f; exit $rc` propagiert den Pipeline-Exit;
+  bei ≠ 0 `RemoteCommandException` (leerer Schirm ≠ toter Session). `sleep 0.15` bewusst
+  als bekannte Grenze belassen.
+- **V7** — `if (_state.value.sending) return` in `sendRaw` (+ Test).
+- **V8** — `Log.w` im Decrypt-Fehlerzweig von `readDecryptedKey`.
+- **V10** — `if (s.step != Idle) return` in `OnboardingViewModel.start()` (+ Test).
+
+`./gradlew testDebugUnitTest lintDebug` grün (0 Lint-Issues), `bundleRelease` grün
+(R8/minify sauber). Offen bleiben V3, V4, V5, V9, V11.
+
+Überschneidung mit den „sehr-niedrig"-Notizen aus Runde 3 (bewusst zurückgestellt):
+V4↔TOFU-accept-first, V8↔`learnHostFingerprint`-Stillschweigen, der `adbRunning`-
+`finally`-Reset. Diese Runde verifiziert sie am Code und schärft die Empfehlung.
+
+Bewusst **als sicher abgehakt** (geprüft, kein Fund): GCM-IV/Tag, konstant-zeitiger
+Fingerprint-Vergleich, alle `shellQuote`/`pathQuote`-Pfade, R8/ProGuard-Keeps,
+Manifeste (`allowBackup=false`, kein Cleartext, INTERNET vorhanden), `runCommand`-
+Drain (Hard Rule 3), `selectedIndex`-Clamping an vier Stellen, `ignoreUnknownKeys`
++ Default-Werte (Schema-Evolution; **Caveat:** kein `@SerialName` → ein *Umbenennen*
+eines Feldes bräche Alt-JSON — derzeit kein Bug, nur Awareness).
+
+---
+
+## V1. Streaming-Exit-Code wird nie ausgewertet — *Schwere: mittel–hoch*
+
+`app-lobber/.../ui/InstallViewModel.kt:37,91` + `Screens.kt:282`;
+`app-caster/.../ui/LaunchViewModel.kt:185-207`.
+
+Der Streaming-Pfad emittiert `LogLine.ExitCode(cmd.exitStatus)`, aber **kein
+Konsument prüft den Wert**. Lobbers `installFinished` ist
+`log.any { it is LogLine.ExitCode }` — `true` für *jeden* Terminal-Code inkl. ≠ 0.
+`lastExitCode` wird zwar mitgeschrieben, `InstallProgress` bekommt aber nur
+`finished` (nicht den Code). Ein `install-aab.sh`, das mit 1 endet (bundletool-/
+Signier-Fehler, kein Gerät, Device offline), rendert **identisch zu Erfolg**.
+Caster genauso: `lastExitCode` landet im State, der Screen unterscheidet nicht.
+
+Zusätzlich: `cmd.exitStatus` ist `null`, wenn der Server keine `exit-status`-Message
+sendet (Channel via Signal/EOF geschlossen — genau der Verbindungsabbruch-/SIGPIPE-
+Fall). `ExitCode(null)` → `installFinished == true` → liest sich als sauberer
+Abschluss. Ein mitten im Install abgebrochener Stream ist nicht von Erfolg zu
+unterscheiden.
+
+Kontrast: die nicht-streamenden `runCommand`-Pfade werfen bei `exit != 0` eine
+`RemoteCommandException` — nur der Streaming-Pfad verschluckt das.
+
+**Empfehlung:** VM behandelt `ExitCode` ≠ 0 **oder** `null` als Fehlerzustand
+(eigenes Flag/`error`) und spiegelt das im Install-/Launch-Ergebnis-UI. Das ist
+der mit Abstand wichtigste neue Fund — er betrifft den Kernzweck (Installieren/
+Starten) auf dem Fehlerpfad.
+
+## V2. `find -printf '%T@'` locale-abhängiges Dezimal-Trennzeichen — *Schwere: mittel*
+
+`app-lobber/.../ssh/SshjClient.kt:34`, geparst in `parseFindPrintfLine:79`.
+
+`%T@` druckt `Sekunden.Bruchteil`; GNU find formatiert den Bruchteil mit dem
+**Locale-Dezimaltrennzeichen**. Auf einem Host mit z. B. `LC_NUMERIC=de_DE.UTF-8`
+kommt `1714680000,5234` (Komma). `parseFindPrintfLine` macht `substringBefore('.')`
+→ kein `.` vorhanden → `"…,5234".toLongOrNull()` = `null` → der Eintrag wird per
+`mapNotNull` **lautlos verworfen**. Jede `.aab` mit Bruchteil-mtime verschwindet
+aus Lobbers Liste — die Kernfunktion liefert leer/unvollständig ohne Fehler, auf
+einer plausiblen europäischen Server-Konfiguration.
+
+**Empfehlung:** dem Remote-Kommando `LC_ALL=C ` voranstellen (fixt zugleich
+locale-abhängige `screen`-Statustexte, s. V-Hinweis unten) **oder** im Parser auf
+`.` und `,` splitten. `ParseFindPrintfLineTest` testet nur die Punkt-Form.
+
+## V3. `SettingsViewModel`-CRUD überschreibt asynchron gelernten Host-Key-Pin — *Schwere: mittel*
+
+`app-{lobber,caster,prodder}/.../ui/SettingsViewModel.kt` (Lobber `:66-123`),
+gegen `SettingsStore.learnHostFingerprint:81-95`.
+
+Der Editor-VM liest `servers` **einmalig** per `settings.servers.first()` im `init`
+und mutiert danach nur die lokale Kopie; `saveServer`/`deleteServer` schreiben diesen
+(potenziell veralteten) Snapshot via `saveServers(...)` zurück — **die ganze Liste**.
+Parallel pinnt `learnHostFingerprint` einen frisch gelernten Fingerprint **direkt
+in DataStore** auf `applicationScope` (fire-and-forget, überlebt VM-Tod).
+
+Ablauf: Connect auf dem Launcher-Screen plant einen Pin-Write auf appScope → Nutzer
+navigiert zu Settings (frischer VM liest `servers`, *aber der appScope-Write ist evtl.
+noch nicht gelandet*) → Nutzer editiert **irgendein** Profil und speichert → der
+stale Snapshot überschreibt die Liste und **verwirft den eben gelernten Pin** (auch
+den eines *anderen* Profils, da die gesamte Liste neu geschrieben wird). Selbst-
+heilend nur, weil der nächste Connect bei `knownHostFingerprint == null` erneut TOFU
+macht — und genau dieses stille Re-Learn untergräbt die Tamper-Erkennung, die der Pin
+liefern soll.
+
+Launcher-VMs (`InstallViewModel`/`LaunchViewModel`/`SessionsViewModel`) sind
+**nicht** betroffen — sie beobachten den Live-Flow (`serverSelectionState`). Nur die
+Editor-VMs halten eine Snapshot-Kopie.
+
+**Empfehlung:** in `saveServer`/`deleteServer` die Liste vor dem Schreiben frisch
+lesen (`settings.servers.first()`) und Upsert/Remove darauf anwenden — oder den
+CRUD ganz auf den Live-Flow heben. Alternativ den Pin aus der `servers`-Blob heraus
+in einen separaten Per-(host,port)-Preference-Key ziehen, dann kollidieren Pin- und
+Profil-Write nie. (Store-intern serialisiert `dataStore.edit{}` zwar die Writes —
+der Race liegt in der *VM-Snapshot*-Schicht, nicht in DataStore.)
+
+## V4. Onboarding sendet Passwort an noch unverifizierten Host — *Schwere: mittel (inhärent)*
+
+`app-lobber/.../ssh/SshjBootstrap.kt:22-25`.
+
+```
+ssh.addHostKeyVerifier(TofuHostKeyVerifier(expectedFingerprint = null) { learned = it })
+ssh.connect(host, port)
+ssh.authPassword(username, password)   // ← Passwort an einen first-contact, ungepinnten Host
+```
+
+Beim Onboarding ist der Host-Key unbekannt (`expectedFingerprint = null`), der
+Verifier akzeptiert also *jeden* präsentierten Key — und das Nächste ist das Senden
+des **SSH-Account-Passworts**. Ein On-Path-Angreifer im Build-LAN (ARP/DNS-Spoof,
+Rogue-AP) beim Erst-Connect präsentiert seinen eigenen Host-Key (TOFU akzeptiert),
+fängt das Passwort ab und besitzt den Account. Die reinen Pubkey-Pfade sind immun
+(es wird nie ein Secret übertragen, nur der *öffentliche* Schlüssel) — nur der
+Passwort-Onboarding-Pfad gibt das eine langlebige Geheimnis preis.
+
+Das ist die klassische „TOFU schützt Integrität, aber nicht die First-Use-
+Vertraulichkeit"-Lücke und in einer reinen Passwort-TOFU-Onboarding-Flow inhärent.
+
+**Empfehlung:** den gelernten `SHA256:…`-Fingerprint **vor** dem Pinnen/Speichern in
+der UI anzeigen und vom Nutzer (out-of-band) bestätigen lassen — TOFU → „trust on
+first use *with verification*" nur für den Onboarding-Pfad. Mindestens: Fingerprint
+im Onboarding-Erfolg anzeigen + dokumentieren, dass Onboarding im vertrauten Netz
+stattfinden muss.
+
+## V5. Streaming-Reader nicht cancellation-fähig — *Schwere: niedrig–mittel*
+
+`app-caster/.../ssh/SshjClient.kt:57-59`, `app-lobber/.../ssh/SshjClient.kt:60-68`.
+
+Die Drain-Schleifen sind blockierendes JVM-I/O (`BufferedReader.readLine`) ohne
+kooperativen Cancellation-Check. Wird der `viewModelScope` mitten im Stream gecancelt
+(VM geräumt während Install/Launch läuft), wartet der umschließende `coroutineScope`
+auf seine in `readLine()` **blockierten** Kinder, die erst zurückkehren, wenn der Host
+die nächste Zeile schreibt oder den Channel schließt — bis dahin läuft der
+`startSession().use{}`/`connect().use{}`-Teardown nicht, Socket + sshj-Reader-Threads
+hängen nach. (`runCommand` hat dieselbe Read-Form, ist aber durch
+`cmd.join(timeoutSeconds)` und kurze Kommandos begrenzt — der Streaming-Pfad fährt
+gerade die *längsten* Kommandos.)
+
+**Empfehlung:** Bei Cancellation Session/Command aktiv schließen (sshj
+`Channel.close()` weckt das blockierte `readLine()` per EOF), z. B.
+`try { out.join(); err.join() } finally { runCatching { cmd.close() } }`. Gemeinsame
+Form Caster+Lobber — einmal fixen, spiegeln. (Hinweis: Exaktes Cancellation-Verhalten
+am Gerät verifizieren; die statische Analyse legt das Hängen nahe, ein Lauftest
+bestätigt es endgültig.)
+
+## V6. Prodder `capture`/hardcopy: Exit-Code verworfen, fixe `sleep 0.15` — *Schwere: niedrig–mittel*
+
+`app-prodder/.../ssh/SshjClient.kt:31-41`.
+
+`f=$(mktemp …) && screen -S … -X hardcopy "$f" && sleep 0.15 && cat "$f"; rm -f "$f"`
+— der Exit-Code wird verworfen (`val (_, out, _)`). Mehrere Fehlerfälle liefern `out`
+leer und werden als gültiger (leerer) Schirm gerendert (`SessionViewModel.refresh`
+behandelt jeden Nicht-Throw als Erfolg):
+- `mktemp` schlägt fehl → `&&` bricht ab, `cat` läuft nie → leerer Schirm, kein Fehler.
+- `hardcopy` schlägt fehl (tote/falsche Session) → Kette bricht vor `cat` ab → leer.
+- `sleep 0.15` ist ein fixes Race-Fenster: `hardcopy` schreibt asynchron; auf
+  ausgelastetem Host liest `cat` evtl. eine partielle/leere Datei → abgeschnittener
+  Snapshot, wieder als Erfolg gemeldet.
+
+(`rm -f` läuft dank `;` immer — Cleanup ist korrekt.)
+
+**Empfehlung:** Exit-Code prüfen und bei ≠ 0 einen Fehler zeigen; „Session weg" von
+„leerer Schirm" unterscheiden. Das fixe `sleep` ist inhärent racy — entweder auf
+nicht-leere Datei pollen oder als bekannte Grenze dokumentieren, aber einen echten
+Fehler nicht als sauberen Leer-Capture maskieren.
+
+## V7. Prodder `sendRaw` ohne In-Flight-Guard — *Schwere: niedrig–mittel*
+
+`app-prodder/.../ui/SessionViewModel.kt:107-125`.
+
+R2 hat den Guard auf `refresh()` ergänzt; `sendRaw` startet jedoch bedingungslos —
+nur die *UI* gated über `enabled = !sending`. Die QuickKeys-Chips (`y`/`n`/Enter/
+Ctrl-C) und der Text-Send-Button sind getrennte Widgets; schnelle Taps über zwei
+verschiedene Chips, bevor `sending` umschaltet, starten zwei `sendInput`-Coroutinen
+nebenläufig. Zwei verschränkte `stuff`-Writes in dieselbe Session können out-of-order
+landen — bei einer Build-Session, die Prompts beantwortet, ein echtes Korrektheits-
+problem (z. B. „yn" statt „ny").
+
+**Empfehlung:** `if (_state.value.sending) return` am Anfang von `sendRaw` — analog
+zu den `loading`-Guards anderswo; nicht allein auf UI-`enabled` verlassen.
+
+## V8. Decrypt-Fehler des at-rest-Keys lautlos zu „nicht konfiguriert" — *Schwere: niedrig*
+
+`core-data/.../SettingsStore.kt:155-161` (`readDecryptedKey` → `runCatching{…}.getOrNull()`).
+
+Wirft `KeyVault.decrypt` (korrupter Blob, **manipuliertes Ciphertext = GCM-Tag-
+Mismatch**, oder Keystore-Key gelöscht), schluckt `readDecryptedKey` die Exception
+und liefert `null`. Aufrufer (`resolveConfig`, `isConfigured`) behandeln die App dann
+als „unkonfiguriert" — ununterscheidbar von „noch kein Key". Ein GCM-Tag-Failure ist
+aber ein **Security-Event** (die at-rest-Key-Datei wurde verändert) und wird nirgends
+geloggt (anders als `readServers`, das in R5 ein `Log.w` bekam).
+
+**Empfehlung:** „absent" von „present-but-undecryptable" trennen; mindestens
+`Log.w(TAG, "key blob failed to decrypt/authenticate", e)` im Fehlerzweig, idealer-
+weise ein eigener Fehlerzustand, damit Tampering/Keystore-Verlust nicht still mit
+Erst-Start gleichgesetzt wird.
+
+## V9. `screen -ls || true` / `aabContainsPackage` maskieren echte Fehler — *Schwere: niedrig*
+
+`app-caster/.../ssh/SshjClient.kt:41,73`, `app-prodder/.../ssh/SshjClient.kt:26`;
+`app-lobber/.../ssh/SshjClient.kt:44-53` (Caller `InstallViewModel.kt:70`,
+`getOrDefault(false)`).
+
+`screen -ls` endet mit 1, wenn keine Session läuft (erwartet) — aber `|| true` +
+verworfener Exit-Code maskiert auch echte Fehler (`screen` nicht installiert,
+Permission auf `/run/screen`): die Liste ist dann leer = „keine Sessions" statt
+Fehler. Analog liefert `unzip -p … | grep -aFq` `false` sowohl bei „Paket fehlt"
+(korrekt) als auch bei `unzip`-Fehler (korrupte/fehlende AAB) → der Self-Install-
+Sicherheitsdialog wird übersprungen (fail-open; Injektion ausgeschlossen, da
+`grep -aFq --` + `shellQuote`).
+
+**Empfehlung:** echten Fehler vom erwarteten Negativ-Ergebnis trennen (Exit 1 +
+„No Sockets found"-Sentinel vs. anderer Fehler); bei `aabContainsPackage` im Zweifel
+*fail-safe* den Bestätigungsdialog zeigen statt zu unterdrücken.
+
+## V10. `OnboardingViewModel.start()` ohne In-Flight-Guard — *Schwere: niedrig*
+
+`app-lobber/.../ui/OnboardingViewModel.kt`.
+
+`start()` prüft Feld-Validität, aber nicht, ob bereits ein Onboarding läuft
+(`step != Idle`). Zwischen Tap und dem ersten `_state.update { step = GeneratingKey }`
+gibt es ein Fenster, in dem ein zweiter Tap die Validitätsprüfung passiert und eine
+zweite Pipeline startet → doppelter `authorized_keys`-Eintrag + doppeltes Done-Event.
+Schmales Fenster (Passwort-Tippen ist langsam), aber die eine verbliebene
+ungeschützte Action-Methode.
+
+**Empfehlung:** `if (_state.value.step != OnboardingStep.Idle) return` am Anfang.
+
+## V11. `KeyVault` + `readDecryptedKey`-Verzweigungen ohne Test — *Schwere: niedrig*
+
+`core-data/.../KeyVault.kt`, `SettingsStore.kt:155-161`.
+
+`KeyVault` braucht den Android-Keystore (nicht pure-JVM) — ein Robolectric-/manueller
+Test ist nachvollziehbar verschoben. Die **Entscheidungslogik** in `readDecryptedKey`
+(leer→null, `-----`-Prefix→as-is, sonst Base64-decode+decrypt, Fehler→null) ist aber
+reine Verzweigung und nur in Produktion exerziert.
+
+**Empfehlung:** die Prefix/Empty/Decode-Entscheidung in einen reinen Helfer ziehen
+(`decrypt: (ByteArray) -> String`-Lambda) und die vier Zweige testen; der AES-Roundtrip
+bleibt Robolectric-/manuell.
+
+### Locale-Querschnitt (V2 + Notiz)
+
+`LC_ALL=C` vor `find`/`screen -ls`/`screen -X hardcopy` löst gleich mehrere
+locale-bedingte Schwächen auf einmal: V2 (Komma-mtime), lokalisierte `(Detached)`/
+`(Attached)`-Statustexte in `parseScreenSessions` (screen lokalisiert via gettext →
+englische Token-Prüfung schlägt fehl → alles als detached), und allgemein
+deterministische, parser-stabile Ausgabe. Empfohlen als ein kleiner, breit wirksamer
+Robustheits-Fix.
+
+### Priorisierte Aktionsliste Runde 4
+
+1. **V1** — Streaming-Exit-Code als Fehlerzustand werten (Install/Launch-UI). *(Kernfunktion)*
+2. **V2** — `LC_ALL=C` vor `find` (+ `screen`-Kommandos) — fixt zugleich den Locale-Querschnitt.
+3. **V3** — Editor-CRUD frisch lesen statt stale Snapshot (Pin-Erhalt).
+4. **V4** — Onboarding-Fingerprint anzeigen/bestätigen.
+5. **V6/V7/V10** — billige Guards/Exit-Checks (`sending`-Guard, `capture`-Exit, Onboarding-Guard).
+6. **V5** — Streaming-Teardown bei Cancellation (am Gerät verifizieren).
+7. **V8/V9/V11** — Logging statt Stillschweigen, fail-safe, Test-Helfer.

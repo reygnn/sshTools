@@ -31,14 +31,15 @@ class SshjClient(
 
     override suspend fun listProjects(): List<ProjectEntry> = withContext(Dispatchers.IO) {
         connect().use { ssh ->
+            // LC_ALL=C keeps find/screen output locale-independent (stable parsing). See AUDIT V2.
             val (lsExit, lsOut, lsErr) = ssh.runCommand(
-                "find -L ${pathQuote(config.workingDir)} -maxdepth 1 -name 'claude_*.sh' -type f -printf '%f\\n'"
+                "LC_ALL=C find -L ${pathQuote(config.workingDir)} -maxdepth 1 -name 'claude_*.sh' -type f -printf '%f\\n'"
             )
             if (lsExit != 0) throw RemoteCommandException(lsExit, lsErr.trim())
             val names = lsOut.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }
                 .mapNotNull(::scriptNameToProject).filter(::isValidProjectName).distinct().toList()
             if (names.isEmpty()) return@use emptyList()
-            val (_, screenOut, _) = ssh.runCommand("screen -ls || true")
+            val (_, screenOut, _) = ssh.runCommand("LC_ALL=C screen -ls || true")
             val running = parseRunningSessions(screenOut)
             names.map { ProjectEntry(name = it, running = "claude_$it" in running) }.sortedBy { it.name }
         }
@@ -70,7 +71,7 @@ class SshjClient(
 
     override suspend fun isSessionRunning(project: String): Boolean = withContext(Dispatchers.IO) {
         if (!isValidProjectName(project)) return@withContext false
-        connect().use { ssh -> val (_, out, _) = ssh.runCommand("screen -ls || true"); "claude_$project" in parseRunningSessions(out) }
+        connect().use { ssh -> val (_, out, _) = ssh.runCommand("LC_ALL=C screen -ls || true"); "claude_$project" in parseRunningSessions(out) }
     }
 }
 

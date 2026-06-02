@@ -1,5 +1,6 @@
 package com.github.reygnn.prodder.ssh
 
+import com.github.reygnn.core.ssh.RemoteCommandException
 import com.github.reygnn.core.ssh.connectWithKey
 import com.github.reygnn.core.ssh.parseScreenSessions
 import com.github.reygnn.core.ssh.runCommand
@@ -23,7 +24,7 @@ class SshjClient(
 
     override suspend fun listSessions(): List<ScreenSession> = withContext(Dispatchers.IO) {
         connect().use { ssh ->
-            val (_, out, _) = ssh.runCommand("screen -ls || true")
+            val (_, out, _) = ssh.runCommand("LC_ALL=C screen -ls || true")
             parseSessions(out).sortedBy { it.name }
         }
     }
@@ -31,11 +32,17 @@ class SshjClient(
     override suspend fun capture(sessionId: String): String = withContext(Dispatchers.IO) {
         require(isValidSessionId(sessionId)) { "Invalid session id: $sessionId" }
         connect().use { ssh ->
-            val (_, out, _) = ssh.runCommand(
+            // `rc=$?` captures the capture-pipeline's status *before* `rm` cleanup,
+            // and `exit $rc` propagates it — otherwise the overall exit would be
+            // `rm`'s (always 0) and a dead/missing session or failed mktemp would
+            // surface as a blank screen instead of an error. See AUDIT V6.
+            // A legitimately empty session still exits 0 with empty output.
+            val (exit, out, err) = ssh.runCommand(
                 "f=\$(mktemp \"\${TMPDIR:-/tmp}/prodder.XXXXXX\") && " +
                     "screen -S ${shellQuote(sessionId)} -X hardcopy \"\$f\" && " +
-                    "sleep 0.15 && cat \"\$f\"; rm -f \"\$f\""
+                    "sleep 0.15 && cat \"\$f\"; rc=\$?; rm -f \"\$f\"; exit \$rc"
             )
+            if (exit != 0) throw RemoteCommandException(exit, err.trim())
             out
         }
     }

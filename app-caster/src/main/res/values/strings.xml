@@ -39,6 +39,8 @@
     <string name="open_settings">Open settings</string>
     <string name="no_projects_found">No claude_*.sh scripts found in the working dir.</string>
     <string name="launching_project">Starting %1$s</string>
+    <string name="launch_succeeded">Launch complete</string>
+    <string name="launch_failed">Launch failed (exit %1$s)</string>
     <string name="status_running">running</string>
     <string name="status_stopped">stopped</string>
 </resources>
