@@ -85,15 +85,21 @@ class SettingsViewModel(
 
     fun saveServer() {
         val f = _state.value.editing ?: return
-        val existing = f.index?.let { _state.value.servers.getOrNull(it) }
-        when (val result = f.validate(existing, requireWorkingDir = false)) {
-            ServerFormResult.EmptyFields ->
-                _state.update { it.copy(error = UiText.Resource(R.string.error_fill_all_fields)) }
-            ServerFormResult.InvalidPort ->
-                _state.update { it.copy(error = UiText.Resource(R.string.error_invalid_port)) }
-            is ServerFormResult.Valid -> {
-                val list = _state.value.servers.upsert(f.index, result.profile)
-                viewModelScope.launch {
+        viewModelScope.launch {
+            // Re-read the persisted list first so a host-key pin learned
+            // asynchronously (learnHostFingerprint, on the application scope) since
+            // the editor was opened isn't clobbered by writing back a stale
+            // snapshot — neither the edited profile's own pin nor another
+            // profile's. See AUDIT V3.
+            val current = settings.servers.first()
+            val existing = f.index?.let { current.getOrNull(it) }
+            when (val result = f.validate(existing, requireWorkingDir = false)) {
+                ServerFormResult.EmptyFields ->
+                    _state.update { it.copy(error = UiText.Resource(R.string.error_fill_all_fields)) }
+                ServerFormResult.InvalidPort ->
+                    _state.update { it.copy(error = UiText.Resource(R.string.error_invalid_port)) }
+                is ServerFormResult.Valid -> {
+                    val list = current.upsert(f.index, result.profile)
                     settings.saveServers(list)
                     _state.update { it.copy(servers = list, editing = null, error = null) }
                 }
@@ -102,10 +108,12 @@ class SettingsViewModel(
     }
 
     fun deleteServer(index: Int) {
-        val list = _state.value.servers.toMutableList()
-        if (index !in list.indices) return
-        list.removeAt(index)
         viewModelScope.launch {
+            // Re-read so other profiles' asynchronously-learned pins survive the
+            // delete (the whole list is rewritten). See AUDIT V3.
+            val list = settings.servers.first().toMutableList()
+            if (index !in list.indices) return@launch
+            list.removeAt(index)
             settings.saveServers(list)
             _state.update { it.copy(servers = list) }
         }

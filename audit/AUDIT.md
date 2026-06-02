@@ -499,7 +499,7 @@ Konsolidierungsvorschläge zielen auf `core-data`/`core-ui`).
 |---|------|-----|---------|--------|
 | V1 | Streaming-Exit-Code wird nie ausgewertet → fehlgeschlagene Install/Launch sehen erfolgreich aus | Korrektheit | **mittel–hoch** | ✅ Quick-Win |
 | V2 | `find -printf '%T@'` locale-abhängiges Dezimal-Trennzeichen → AABs verschwinden lautlos | Korrektheit/Robustheit | mittel | ✅ Quick-Win |
-| V3 | `SettingsViewModel`-CRUD überschreibt asynchron gelernten Host-Key-Pin (stale Snapshot) | Concurrency/Security | mittel | offen |
+| V3 | `SettingsViewModel`-CRUD überschreibt asynchron gelernten Host-Key-Pin (stale Snapshot) | Concurrency/Security | mittel | ✅ `fix/audit-r4-v3-pin-race` |
 | V4 | Onboarding sendet Passwort an noch *unverifizierten* Host (TOFU-First-Use-Secrecy) | Security | mittel (inhärent) | offen |
 | V5 | Streaming-Reader (`lineSequence()`) nicht cancellation-fähig → verzögerter `.use{}`-Teardown | Resource/Robustheit | niedrig–mittel | offen |
 | V6 | Prodder `capture`/hardcopy: Exit-Code verworfen + fixe `sleep 0.15` → leerer Schirm als „Erfolg" | Korrektheit | niedrig–mittel | ✅ Quick-Win (Exit-Check; `sleep` als Limit belassen) |
@@ -523,7 +523,17 @@ Konsolidierungsvorschläge zielen auf `core-data`/`core-ui`).
 - **V10** — `if (s.step != Idle) return` in `OnboardingViewModel.start()` (+ Test).
 
 `./gradlew testDebugUnitTest lintDebug` grün (0 Lint-Issues), `bundleRelease` grün
-(R8/minify sauber). Offen bleiben V3, V4, V5, V9, V11.
+(R8/minify sauber). Offen bleiben V4, V5, V9, V11.
+
+### Umsetzungs-Chronik V3 (2026-06-02, Branch `fix/audit-r4-v3-pin-race`)
+
+- **V3** — `saveServer`/`deleteServer` in allen drei `SettingsViewModel`s lesen die
+  Profilliste jetzt **frisch** (`settings.servers.first()`) innerhalb der Coroutine,
+  statt den `init`-Snapshot zurückzuschreiben. Ein parallel auf `applicationScope`
+  gelernter Host-Key-Pin (eigenes *oder* fremdes Profil) überlebt damit ein
+  Editieren/Löschen. Pro App ein Regressionstest (`save preserves a host-key pin
+  learned after the editor was opened`) — deckt zugleich die zuvor fehlende
+  Caster-Pin-Erhaltung ab. `testDebugUnitTest`/`lintDebug` grün.
 
 Überschneidung mit den „sehr-niedrig"-Notizen aus Runde 3 (bewusst zurückgestellt):
 V4↔TOFU-accept-first, V8↔`learnHostFingerprint`-Stillschweigen, der `adbRunning`-

@@ -154,6 +154,28 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `save preserves a host-key pin learned after the editor was opened`() = runTest(mainDispatcherRule.dispatcher) {
+        // AUDIT V3: editing A must not clobber B's asynchronously-learned pin —
+        // saveServer re-reads the fresh list instead of the stale snapshot.
+        val a = ServerProfile(name = "A", host = "host-a", username = "ci", workingDir = "/srv")
+        val b = ServerProfile(name = "B", host = "host-b", username = "ci", workingDir = "/srv")
+        val bPinned = b.copy(knownHostFingerprint = "SHA256:learned")
+        var serversFlow = flowOf(listOf(a, b))
+        every { settings.servers } answers { serversFlow }
+        val saved = slot<List<ServerProfile>>()
+        coEvery { settings.saveServers(capture(saved)) } returns Unit
+        val vm2 = SettingsViewModel(settings = settings, createClient = { client })
+
+        serversFlow = flowOf(listOf(a, bPinned))   // B pinned after the snapshot
+        vm2.editServer(0)                          // edit the unrelated profile A
+        vm2.onEditName("A renamed")
+        vm2.saveServer()
+
+        assertEquals("A renamed", saved.captured[0].name)
+        assertEquals("SHA256:learned", saved.captured[1].knownHostFingerprint)
+    }
+
+    @Test
     fun `deleteServer removes the profile and persists`() = runTest(mainDispatcherRule.dispatcher) {
         vm.deleteServer(0)
 
