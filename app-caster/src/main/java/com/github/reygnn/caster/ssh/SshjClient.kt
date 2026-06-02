@@ -2,6 +2,7 @@ package com.github.reygnn.caster.ssh
 
 import com.github.reygnn.core.ssh.BcOpenSshKeyProvider
 import com.github.reygnn.core.ssh.TofuHostKeyVerifier
+import com.github.reygnn.core.ssh.parseScreenSessions
 import com.github.reygnn.core.ssh.pathQuote
 import com.github.reygnn.core.ssh.readCapped
 import com.github.reygnn.core.ssh.shellQuote
@@ -114,11 +115,6 @@ internal fun isValidProjectName(name: String): Boolean =
     name.isNotEmpty() && name.length <= 64 && name != "." && !name.contains("..") &&
         name.all { it.isLetterOrDigit() || it == '-' || it == '_' || it == '.' }
 
+/** The set of running screen-session names (Caster keys on `claude_<project>`). */
 internal fun parseRunningSessions(screenLsOutput: String): Set<String> =
-    screenLsOutput.lineSequence().map { it.trim() }.mapNotNull { line ->
-        val token = line.substringBefore('\t').substringBefore(' ').trim()
-        val dot = token.indexOf('.')
-        if (dot <= 0) return@mapNotNull null
-        if (token.substring(0, dot).toIntOrNull() == null) return@mapNotNull null
-        token.substring(dot + 1).ifEmpty { null }
-    }.toSet()
+    parseScreenSessions(screenLsOutput).mapTo(mutableSetOf()) { it.name }

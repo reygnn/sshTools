@@ -40,7 +40,7 @@ Legende: 🟢 risikolos · 🟡 mittel · 🔴 größer (eigener Branch).
 
 ## Phase 3 — App-agnostische SSH-Logik nach `core-ssh`
 
-- [ ] **A4 · `screen -ls`-Parsing nach core** 🟡
+- [x] **A4 · `screen -ls`-Parsing nach core** 🟡 (erledigt 2026-06-02)
   Gemeinsame Parse-Funktion in `core-ssh` (token-Extraktion aus `screen -ls`).
   Caster (`parseRunningSessions`) und Prodder (`parseSessions`) bauen ihre
   app-spezifischen Typen (`ProjectEntry`/`ScreenSession`) auf dem core-Ergebnis

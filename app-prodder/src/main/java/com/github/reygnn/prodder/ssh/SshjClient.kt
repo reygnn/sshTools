@@ -2,6 +2,7 @@ package com.github.reygnn.prodder.ssh
 
 import com.github.reygnn.core.ssh.BcOpenSshKeyProvider
 import com.github.reygnn.core.ssh.TofuHostKeyVerifier
+import com.github.reygnn.core.ssh.parseScreenSessions
 import com.github.reygnn.core.ssh.readCapped
 import com.github.reygnn.core.ssh.shellQuote
 import kotlinx.coroutines.Dispatchers
@@ -82,15 +83,7 @@ internal fun isValidSessionId(id: String): Boolean {
 }
 
 internal fun parseSessions(output: String): List<ScreenSession> =
-    output.lineSequence().map { it.trim() }.mapNotNull { line ->
-        val token = line.substringBefore('\t').substringBefore(' ').trim()
-        val dot = token.indexOf('.')
-        if (dot <= 0) return@mapNotNull null
-        if (token.substring(0, dot).toIntOrNull() == null) return@mapNotNull null
-        val name = token.substring(dot + 1).ifEmpty { return@mapNotNull null }
-        val attached = line.contains("attached", ignoreCase = true)
-        ScreenSession(id = token, name = name, attached = attached)
-    }.distinctBy { it.id }.toList()
+    parseScreenSessions(output).map { ScreenSession(id = it.id, name = it.name, attached = it.attached) }
 
 internal fun buildStuffPayload(text: String, appendEnter: Boolean): String =
     if (appendEnter) text + "\r" else text
