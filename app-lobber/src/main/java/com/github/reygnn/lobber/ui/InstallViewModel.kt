@@ -6,6 +6,7 @@ import com.github.reygnn.core.data.ServerSelection
 import com.github.reygnn.core.data.SettingsStore
 import com.github.reygnn.core.data.serverSelectionState
 import com.github.reygnn.core.ssh.LogLine
+import com.github.reygnn.core.ssh.chunkedByTime
 import com.github.reygnn.core.ssh.plusCapped
 import com.github.reygnn.core.ui.UiText
 import com.github.reygnn.core.ui.toUiText
@@ -89,8 +90,18 @@ class InstallViewModel(
     private suspend fun startInstall(aab: String, config: SshConfig) {
         _state.update { it.copy(installing = aab, log = emptyList(), lastExitCode = null, error = null) }
         createClient(config).executeStreaming("$script ${shellQuote(aab)}")
+            // Coalesce per-line emissions into ~50ms batches (bounds recomposition rate).
+            .chunkedByTime()
             .catch { e -> _state.update { it.copy(installing = null, error = e.toUiText()) } }
-            .collect { line -> _state.update { current -> current.copy(log = current.log.plusCapped(line), lastExitCode = if (line is LogLine.ExitCode) line.code else current.lastExitCode) } }
+            .collect { batch ->
+                val exit = batch.lastOrNull { it is LogLine.ExitCode } as LogLine.ExitCode?
+                _state.update { current ->
+                    current.copy(
+                        log = current.log.plusCapped(batch),
+                        lastExitCode = if (exit != null) exit.code else current.lastExitCode,
+                    )
+                }
+            }
     }
 
     fun clearAabs() {

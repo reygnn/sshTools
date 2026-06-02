@@ -24,3 +24,14 @@ fun List<LogLine>.plusCapped(line: LogLine, max: Int = DEFAULT_MAX_LOG_LINES): L
     val appended = this + line
     return if (appended.size <= max) appended else appended.takeLast(max)
 }
+
+/**
+ * Batch variant of [plusCapped]: appends [lines] in one allocation (used with
+ * [chunkedByTime], which delivers coalesced batches) instead of copying the
+ * backing list once per line.
+ */
+fun List<LogLine>.plusCapped(lines: List<LogLine>, max: Int = DEFAULT_MAX_LOG_LINES): List<LogLine> {
+    if (lines.isEmpty()) return this
+    val appended = this + lines
+    return if (appended.size <= max) appended else appended.takeLast(max)
+}

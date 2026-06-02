@@ -8,6 +8,7 @@ import com.github.reygnn.core.data.ServerSelection
 import com.github.reygnn.core.data.SettingsStore
 import com.github.reygnn.core.data.serverSelectionState
 import com.github.reygnn.core.ssh.LogLine
+import com.github.reygnn.core.ssh.chunkedByTime
 import com.github.reygnn.core.ssh.plusCapped
 import com.github.reygnn.caster.ssh.ProjectEntry
 import com.github.reygnn.caster.ssh.SshClient
@@ -188,6 +189,9 @@ class LaunchViewModel(
         }
         createClient(config)
             .startStreaming(project)
+            // Coalesce per-line emissions into ~50ms batches so a chatty launch log
+            // updates state per batch, not per line (bounds recomposition rate).
+            .chunkedByTime()
             .catch { e ->
                 _state.update {
                     it.copy(
@@ -196,11 +200,12 @@ class LaunchViewModel(
                     )
                 }
             }
-            .collect { line ->
+            .collect { batch ->
+                val exit = batch.lastOrNull { it is LogLine.ExitCode } as LogLine.ExitCode?
                 _state.update { current ->
                     current.copy(
-                        log = current.log.plusCapped(line),
-                        lastExitCode = if (line is LogLine.ExitCode) line.code else current.lastExitCode,
+                        log = current.log.plusCapped(batch),
+                        lastExitCode = if (exit != null) exit.code else current.lastExitCode,
                     )
                 }
             }
