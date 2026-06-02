@@ -9,12 +9,19 @@ Versionen: Lobber 0.6.1 (29), Caster 0.5.1 (9), Prodder 0.2.1 (6).
 
 ## Aktueller Stand
 
-Eine vollständige **core-Konsolidierung** ist abgeschlossen: alle Findings aus
-`audit/AUDIT.md` (A1–A8, B1–B4) sind umgesetzt und in `TODO.md` abgehakt.
-`./gradlew test`, `assembleDebug` und `clean lint` (0 Issues über alle 7 Module)
-sind grün. `main` == `origin/main`, alles gepusht, keine offenen Branches.
+Zwei aufeinanderfolgende **core-Konsolidierungen** sind abgeschlossen:
 
-Ziel der Arbeit war: **Gemeinsamkeiten der drei Apps nach `core-*` ziehen, um
+1. **Erste Runde** (alte Audit-Taxonomie A1–A8/B1–B4, in `TODO.md` abgehakt):
+   geteilte UI-/SSH-/Parsing-Primitive nach `core-*`.
+2. **Zweites Audit** (`audit/AUDIT.md`, Funde #1–#12, Umsetzungs-Chronik
+   `c638f70 … 1c9ac4f`): typisierte/lokalisierte SSH-Fehler, Streaming-Log-Cap,
+   Lobber-Lifecycle an Caster/Prodder angeglichen, und die Server-Form-/Selection-
+   Logik nach `core-data`. Alle Funde abgearbeitet (Status-Tabelle im Audit).
+
+`./gradlew testDebugUnitTest` + `lintDebug` (0 Issues über alle 7 Module) sind
+grün. `main` == `origin/main`, alles gepusht, keine offenen Branches.
+
+Ziel beider Runden: **Gemeinsamkeiten der drei Apps nach `core-*` ziehen, um
 Drift zu vermeiden** — ohne Hard Rule 1 zu verletzen.
 
 ## Wo geteilter Code jetzt lebt (Ergebnis der Konsolidierung)
@@ -25,18 +32,33 @@ Drift zu vermeiden** — ohne Hard Rule 1 zu verletzen.
   **keine** VM-Kopplung. App-Screens bleiben Kompositions-Wurzel.
 - `core-ui/LogView.kt` — `LogLineRow(line)` (geteiltes stdout/stderr/exit-
   Rendering). Dafür hängt `core-ui` an `core-ssh` (nur für `LogLine`).
+- `core-ui/ErrorText.kt` — `Throwable.toUiText()`: zentrales Fehler→`UiText`-
+  Mapping (vorher 11× inline in den VMs). `RemoteCommandException` → lokalisierte
+  Resource `cu_error_remote_command`, sonst die Message (Fallback `cu_error_unknown`).
 - `core-ui` Strings: geteilte UI-Strings als `cu_*` in `values/` + `values-de/`
   (einmal gepflegt). App-spezifische Strings liegen pro App, jeweils EN + DE.
 - `core-ssh/SshSession.kt` — `connectWithKey(...)` (Verifier + Timeout + connect +
-  authPublickey) und `SSHClient.runCommand(...): CommandResult` (stdout+stderr
-  nebenläufig drainen, **await vor join** = Hard Rule 3). `core-ssh` hängt jetzt
-  an `kotlinx-coroutines-core`.
+  authPublickey), `SSHClient.runCommand(...): CommandResult` (stdout+stderr
+  nebenläufig drainen, **await vor join** = Hard Rule 3) und `RemoteCommandException`
+  (typisierter Nicht-0-Exit; UI-seitig via `toUiText()` lokalisiert). `core-ssh`
+  hängt an `kotlinx-coroutines-core`.
+- `core-ssh/LogLine.kt` — `List<LogLine>.plusCapped()` + `DEFAULT_MAX_LOG_LINES`
+  (5000): kappt das im VM-State akkumulierte Streaming-Log, an allen 3 Append-Stellen.
 - `core-ssh/ScreenSessions.kt` — `parseScreenSessions(...)` + `ScreenSessionInfo`
-  (geteiltes `screen -ls`-Parsing; Caster/Prodder mappen darauf).
+  (geteiltes `screen -ls`-Parsing; Caster mappt auf `ProjectEntry`, Prodder auf
+  sein app-lokales `ScreenSession` — bewusst, siehe AUDIT #10).
 - `core-data/ServerProfile.kt` — `ServerProfile?.pinToKeepFor(host, port)`
   (Host-Key-Pin beim Editieren behalten/zurücksetzen).
+- `core-data/ServerEditing.kt` — `ServerForm`, `ServerForm.validate(existing,
+  requireWorkingDir): ServerFormResult`, `ServerProfile.toForm(index)`,
+  `List<ServerProfile>.upsert(...)`: Server-Editor-Validierung + Pin-Erhalt einmal
+  getestet; die 3 `SettingsViewModel`s delegieren (Prodder mit `requireWorkingDir=false`).
+- `core-data/ServerSelection.kt` — `ServerSelection` +
+  `SettingsStore.serverSelectionState(scope)` (Picker-Flow). `core-data` hängt
+  dafür jetzt **ebenfalls** an `kotlinx-coroutines-core`.
 - `core-ssh/src/test/...` — Tests für die core-Primitives (vorher unter
-  app-lobber); `TofuHostKeyVerifierTest` einmal statt 3×.
+  app-lobber); `TofuHostKeyVerifierTest` einmal statt 3×. Neu: `LogLineTest`
+  (`plusCapped`) und `core-data/ServerFormTest` (`validate`/`toForm`/`upsert`).
 
 ## Invarianten / Entscheidungen, die zu respektieren sind
 
@@ -69,5 +91,6 @@ Drift zu vermeiden** — ohne Hard Rule 1 zu verletzen.
 ## Pointer
 
 - Konventionen + Hard Rules: `CLAUDE.md`
-- Audit-Befunde (inkl. §C „bewusst nicht konsolidieren"): `audit/AUDIT.md`
-- Aufgaben-Tracking (alles abgehakt): `TODO.md`
+- Audit-Funde + Umsetzungs-Chronik (Status je Fund, Abschnitt E „bewusst nicht
+  anfassen"): `audit/AUDIT.md`
+- Aufgaben-Tracking der ersten Konsolidierungsrunde (abgehakt): `TODO.md`
