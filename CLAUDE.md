@@ -189,7 +189,9 @@ A diff-aware linter enforces it: `./gradlew checkGermanComments` (or
 `tools/check-german-comments.sh`) flags German prose in comment lines added
 on/after the cutoff date (the "Stichtag", default `2026-06-01` — the project's
 initial commit, so effectively the whole tree; override with `CHECK_CUTOFF`).
-Ported from Kolibri_Launcher's Rule 13.
+Ported from Kolibri_Launcher's Rule 13. **Run `./gradlew checkGermanComments`
+before committing any comment changes** — it is not wired into `build`/`check`,
+so this is the only enforcement point.
 
 ---
 
