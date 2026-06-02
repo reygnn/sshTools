@@ -24,7 +24,8 @@ import com.github.reygnn.prodder.ui.SettingsViewModel
 class MainActivity : ComponentActivity() {
 
     private val factory by lazy {
-        ProdderViewModelFactory((application as ProdderApplication).settingsStore)
+        val app = application as ProdderApplication
+        ProdderViewModelFactory(app.settingsStore, app.applicationScope)
     }
     private val sessionsVm: SessionsViewModel by viewModels { factory }
     private val sessionVm: SessionViewModel by viewModels { factory }

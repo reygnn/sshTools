@@ -77,17 +77,10 @@ data class ServerSelection(
 
 class LaunchViewModel(
     private val settings: SettingsStore,
-    createClient: ((SshConfig) -> SshClient)? = null,
+    // Host-key persistence is wired in CasterViewModelFactory (appScope) so it
+    // survives a VM clear; this default is a plain client for tests/standalone.
+    private val createClient: (SshConfig) -> SshClient = { SshjClient(it) },
 ) : ViewModel() {
-
-    // Default-Factory pinnt den beim TOFU-Connect gelernten Host-Key. Als
-    // Property (nicht Default-Argument) gebaut, damit der Lambda-Body auf
-    // viewModelScope/settings zugreifen darf; Tests injizieren ihren Mock.
-    private val createClient: (SshConfig) -> SshClient = createClient ?: { cfg ->
-        SshjClient(cfg) { fp ->
-            viewModelScope.launch { settings.learnHostFingerprint(cfg.host, cfg.port, fp) }
-        }
-    }
 
     private val _state = MutableStateFlow(LaunchUiState())
     val state: StateFlow<LaunchUiState> = _state.asStateFlow()

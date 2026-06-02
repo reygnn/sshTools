@@ -101,13 +101,13 @@ Legende: 🟢 risikolos · 🟡 mittel · 🔴 größer (eigener Branch).
 
 ## Phase 5 — Robustheit & Angleichung
 
-- [ ] **A2 · Host-Key-Persistenz vereinheitlichen** 🟡
-  - Caster/Prodder einen `applicationScope` geben (wie `LobberApplication`).
-  - Persistenz-Wiring in allen drei Apps an dieselbe Stelle legen (empfohlen:
-    Factory, wie Lobber) und über `applicationScope` laufen lassen, damit der
-    Pin auch bei VM-Clear geschrieben wird.
-  *Akzeptanz:* identisches Wiring-Muster in allen drei Apps; Pin-Schreiben hängt
-  nicht mehr am `viewModelScope`.
+- [x] **A2 · Host-Key-Persistenz vereinheitlichen** 🟡 (erledigt 2026-06-02)
+  Caster/Prodder haben jetzt einen `applicationScope` (wie `LobberApplication`).
+  Das Persistenz-Wiring liegt in allen drei Apps identisch in der Factory
+  (`client(config)` → `appScope.launch { learnHostFingerprint(…) }`); die VMs
+  nehmen wieder einen schlichten `createClient`-Default und kennen die Persistenz
+  nicht mehr. Pin-Schreiben hängt nicht mehr am `viewModelScope`. MainActivities
+  reichen den `applicationScope` an die Factory.
 
 ---
 

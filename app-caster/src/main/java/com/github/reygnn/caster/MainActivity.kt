@@ -19,7 +19,8 @@ import com.github.reygnn.caster.ui.SettingsViewModel
 class MainActivity : ComponentActivity() {
 
     private val factory by lazy {
-        CasterViewModelFactory((application as CasterApplication).settingsStore)
+        val app = application as CasterApplication
+        CasterViewModelFactory(app.settingsStore, app.applicationScope)
     }
     private val launchVm: LaunchViewModel by viewModels { factory }
     private val settingsVm: SettingsViewModel by viewModels { factory }
