@@ -9,20 +9,30 @@ Versionen: Lobber 0.6.1 (29), Caster 0.5.1 (9), Prodder 0.2.1 (6).
 
 ## Aktueller Stand
 
-Zwei aufeinanderfolgende **core-Konsolidierungen** sind abgeschlossen:
+Mehrere **core-Konsolidierungen + Audit-Runden** sind abgeschlossen:
 
 1. **Erste Runde** (alte Audit-Taxonomie A1–A8/B1–B4): geteilte UI-/SSH-/
    Parsing-Primitive nach `core-*`.
-2. **Zweites Audit** (`audit/AUDIT.md`, Funde #1–#12, Umsetzungs-Chronik
-   `c638f70 … 1c9ac4f`): typisierte/lokalisierte SSH-Fehler, Streaming-Log-Cap,
-   Lobber-Lifecycle an Caster/Prodder angeglichen, und die Server-Form-/Selection-
-   Logik nach `core-data`. Alle Funde abgearbeitet (Status-Tabelle im Audit).
+2. **Zweites Audit** (`audit/AUDIT.md`, Funde #1–#12): typisierte/lokalisierte
+   SSH-Fehler, Streaming-Log-Cap, Lobber-Lifecycle angeglichen, Server-Form-/
+   Selection-Logik nach `core-data`.
+3. **Runde 3** (R1–R8): Prodder-Auto-Refresh lifecycle-bewusst, In-Flight-Guards,
+   L10n-Lecks, `parseScreenSessions`-Edge-Case, `readServers`-Logging, Build-Hygiene.
+4. **Runde 4 (vertieft, V1–V11):** Korrektheit/Concurrency/Security statt nur Drift —
+   u. a. Streaming-Exit-Code als Erfolg/Fehler in der UI (V1), `LC_ALL=C` (V2),
+   Host-Key-Pin-Race im Settings-CRUD (V3), **zweiphasiges Onboarding: Passwort erst
+   nach Host-Key-Bestätigung (V4)**, fail-safe statt fail-open (V9), Cancellation-
+   Teardown im Streaming (V5).
+5. **Feature `core-onboarding`:** der V4-Flow generalisiert in ein eigenes Modul
+   (`OnboardingController`) + core-ssh-Primitive (`SshOnboarding`); **alle drei Apps**
+   onboarden jetzt gleich (eigener Key pro App, Hard Rule 4). Am Gerät (Emulator)
+   verifiziert: Onboarding/Host-Key-Dialog, Liste, Launch (exit 0 + exit 1), Capture, Send.
 
-`./gradlew testDebugUnitTest` + `lintDebug` (0 Issues über alle 7 Module) sind
-grün. `main` == `origin/main`, alles gepusht, keine offenen Branches.
+`./gradlew testDebugUnitTest` + `lintDebug` (0 Issues über alle 8 Module) +
+`bundleRelease` sind grün. `main` == `origin/main`, alles gepusht, keine offenen Branches.
 
-Ziel beider Runden: **Gemeinsamkeiten der drei Apps nach `core-*` ziehen, um
-Drift zu vermeiden** — ohne Hard Rule 1 zu verletzen.
+Ziel durchgängig: **Gemeinsamkeiten der drei Apps nach `core-*` ziehen, um Drift
+zu vermeiden** — ohne Hard Rule 1 zu verletzen.
 
 ## Wo geteilter Code jetzt lebt (Ergebnis der Konsolidierung)
 
@@ -56,6 +66,15 @@ Drift zu vermeiden** — ohne Hard Rule 1 zu verletzen.
 - `core-data/ServerSelection.kt` — `ServerSelection` +
   `SettingsStore.serverSelectionState(scope)` (Picker-Flow). `core-data` hängt
   dafür jetzt **ebenfalls** an `kotlinx-coroutines-core`.
+- `core-ssh/SshOnboarding.kt` — `SshOnboarding`/`SshjOnboarding`: app-agnostische
+  Onboarding-Primitive (`discoverHostKey`/`pushPublicKey`/`verifyPubkeyAuth`, nur
+  host/port/credentials, kein `SshConfig` → Hard Rule 1 unberührt).
+- `core-onboarding/` (5. Core-Modul, hängt an core-ssh + core-data) —
+  `OnboardingController`: zweiphasige Onboarding-State-Machine (V4) + typisierter
+  `OnboardingError` (Apps mappen auf `UiText`). Lifecycle-frei (nimmt `CoroutineScope`).
+  Die 3 Apps wrappen ihn in einen dünnen `OnboardingViewModel` + eigenen
+  `OnboardingScreen`; `requireWorkingDir` ist der einzige App-Unterschied (Prodder=false).
+  Tests einmal als `OnboardingControllerTest` (statt 3× pro App).
 - `core-ssh/src/test/...` — Tests für die core-Primitives (vorher unter
   app-lobber); `TofuHostKeyVerifierTest` einmal statt 3×. Neu: `LogLineTest`
   (`plusCapped`) und `core-data/ServerFormTest` (`validate`/`toForm`/`upsert`).
@@ -82,9 +101,10 @@ Drift zu vermeiden** — ohne Hard Rule 1 zu verletzen.
 
 - **Keine automatisierten Tests für die SSH-Plumbing-Schicht** (`connectWithKey`,
   `runCommand`, die echten connect/stream-Pfade) — braucht einen echten Host.
-  Der grüne Build war dort nur ein Compile-/Typcheck. **Vor dem nächsten Release
-  manueller Rauchtest gegen einen Build-Host** (onboard, list, launch/capture,
-  install) empfohlen.
+  Der grüne Build ist dort nur ein Compile-/Typcheck. **Geräte-Rauchtest am
+  2026-06-02** (Emulator gegen lokalen sshd) deckte onboard/host-key-dialog, list,
+  launch (exit 0 **und** exit 1 via Lobber), capture und send live ab — vor einem
+  Release ähnlich gegen den echten Build-Host wiederholen.
 - Gotcha: nach einem Resource-**Verzeichnis-Rename** kann der inkrementelle
   Build stale werden (`mipmap/... not found`) → `./gradlew clean` behebt es.
 

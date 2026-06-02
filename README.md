@@ -25,7 +25,11 @@ or meant for raw exposure on the open internet (see [Security](#security)).
 | **Prodder** | *prod a stuck session along* | Lists every `screen` session, lets you peek at its current rendered screen (`hardcopy`) and send input — a line, Enter, or Ctrl-C — without attaching. |
 
 All three drive the host over short-lived, per-operation SSH connections (no
-pool, no persistent PTY) authenticated with an Ed25519 key.
+pool, no persistent PTY) authenticated with an Ed25519 key. First-run setup is
+the same in each (shared `core-onboarding`): a key is generated on the phone and
+its public key pushed to the host via a one-time password — two-phase, so the
+host-key fingerprint is shown for confirmation *before* the password is sent.
+Each app keeps its own key and onboards independently.
 
 ---
 
@@ -34,13 +38,14 @@ pool, no persistent PTY) authenticated with an Ed25519 key.
 A single multi-module Gradle build:
 
 ```
-core-data/      SettingsStore (DataStore), KeyVault (AES-256-GCM at rest),
-                ServerProfile, ConfigState
-core-ssh/       app-agnostic SSH primitives: SshKeygen, SshSecurity +
-                TofuHostKeyVerifier, BcOpenSshKeyProvider, shell/pathQuote,
-                hostKeyFingerprint, readCapped, LogLine
-core-ui/        AppTheme (Material You), UiText
-core-testing/   MainDispatcherRule, TESTING_CONVENTIONS (test-only deps)
+core-data/       SettingsStore (DataStore), KeyVault (AES-256-GCM at rest),
+                 ServerProfile, ConfigState
+core-ssh/        app-agnostic SSH primitives: SshKeygen, SshSecurity +
+                 TofuHostKeyVerifier, BcOpenSshKeyProvider, shell/pathQuote,
+                 hostKeyFingerprint, readCapped, LogLine, SshOnboarding
+core-ui/         AppTheme (Material You), UiText
+core-onboarding/ OnboardingController — shared two-phase key-onboarding flow
+core-testing/    MainDispatcherRule, TESTING_CONVENTIONS (test-only deps)
 
 app-lobber/     ┐
 app-caster/     ├─ one Application + NavHost + ViewModels + app-specific
@@ -95,8 +100,11 @@ down.
 - **Trust-on-first-use host-key pinning.** `TofuHostKeyVerifier` learns the
   host's `SHA256:…` fingerprint on first connect and pins it per
   `ServerProfile`; every later connect must match (constant-time compare) or the
-  connection is aborted — no prompt, no silent accept. Residual risk: the
-  first-contact window, inherent to TOFU without an out-of-band fingerprint.
+  connection is aborted — no prompt, no silent accept. The password-based
+  onboarding flow shows the learned fingerprint for explicit confirmation
+  *before* the password is sent; residual risk is the first-contact window of a
+  *pubkey* connect (no secret is exposed there), inherent to TOFU without an
+  out-of-band fingerprint.
 - **Private key encrypted at rest.** The Ed25519 key lives in
   `filesDir/id_ed25519` as Base64 of an AES-256-GCM ciphertext from `KeyVault`
   (non-exportable Android-Keystore key, hardware-backed where available), mode
