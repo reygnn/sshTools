@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Culler</string>
+
+    <!-- TopAppBar titles -->
+    <string name="settings_title">Settings</string>
+    <string name="list_title">Culler %1$s</string>
+
+    <!-- Common actions -->
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="saving">Saving…</string>
+    <string name="done">Done</string>
+    <string name="delete">Delete</string>
+
+    <!-- Delete confirmation -->
+    <string name="delete_title">Delete this entry?</string>
+    <string name="delete_body_dir">Permanently delete the directory \"%1$s\" and everything inside it? This cannot be undone.</string>
+    <string name="delete_body_file">Permanently delete the file \"%1$s\"? This cannot be undone.</string>
+
+    <!-- ViewModel-emitted errors -->
+    <string name="error_fill_all_fields">Fill in all fields</string>
+    <string name="error_need_server">Add at least one server.</string>
+    <string name="error_key_required">Paste the SSH key first.</string>
+    <string name="error_invalid_port">Port must be between 1 and 65535.</string>
+
+    <!-- Server profiles -->
+    <string name="settings_servers">Servers</string>
+    <string name="settings_key">SSH key (shared across servers)</string>
+    <string name="add_server">Add server</string>
+
+    <!-- Form fields (server-name/host/port/user/key labels come from core-ui) -->
+    <string name="field_working_dir">Directory to manage</string>
+
+    <!-- List screen -->
+    <string name="refresh_entries">Reload entries</string>
+    <string name="open_settings">Open settings</string>
+    <string name="no_entries_found">The directory is empty.</string>
+    <string name="entry_kind_dir">directory</string>
+    <string name="entry_kind_file">file</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Set up Culler</string>
+    <string name="onboarding_intro">Culler generates a key on the phone and pushes the public key to the build host. You only need a username and password once for that.</string>
+    <string name="onboarding_start">Start auto-setup</string>
+    <string name="onboarding_running">Running…</string>
+    <string name="onboarding_have_key">I already have a key</string>
+    <string name="field_host">Host</string>
+    <string name="field_port">Port</string>
+    <string name="field_user">Username</string>
+    <string name="field_password_once">Password (used once)</string>
+
+    <!-- Onboarding step labels -->
+    <string name="step_generating">Generating Ed25519 key…</string>
+    <string name="step_discovering">Reading host key…</string>
+    <string name="step_awaiting_confirm">Waiting for host-key confirmation…</string>
+    <string name="step_pushing">Pushing public key to build host…</string>
+    <string name="step_verifying">Verifying public-key login…</string>
+    <string name="step_saving">Saving configuration…</string>
+    <string name="step_done">Done</string>
+</resources>
