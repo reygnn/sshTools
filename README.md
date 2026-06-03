@@ -1,14 +1,16 @@
 # sshTools
 
-> Three small Android remotes for one trusted build host — **lob** a build at
-> your phone, **cast** a session at the server, **prod** a stuck session along.
+> Four small Android remotes for one trusted build host — **lob** a build at
+> your phone, **cast** a session at the server, **prod** a stuck session along,
+> **cull** what's piled up on it.
 
 sshTools is the merged home of three sibling apps that used to live in separate
 repos ([Lobber](https://github.com/reygnn/Lobber),
-[Caster](https://github.com/reygnn/Caster), Prodder). They always shared the
-same SSH transport, crypto, persistence and test conventions — so they now share
-**code** through a set of `core-*` Gradle modules, while still shipping as three
-independent apps.
+[Caster](https://github.com/reygnn/Caster), Prodder), plus a fourth
+(**Culler**) born here on the same foundation. They share the same SSH
+transport, crypto, persistence and test conventions — so they share **code**
+through a set of `core-*` Gradle modules, while still shipping as independent
+apps.
 
 Each app is a thin, single-purpose remote for a **known build host** reachable
 on the LAN or over a **Tailscale tailnet**. None of them is a generic SSH client
@@ -16,20 +18,25 @@ or meant for raw exposure on the open internet (see [Security](#security)).
 
 ---
 
-## The three apps
+## The apps
 
 | App | Verb | What it does |
 |---|---|---|
 | **Lobber** | *lob a build at the phone* | Lists the AABs sitting on the build host and installs the tapped one by running `install-aab.sh` over SSH, streaming its live output. Also the ADB-reconnect helper. |
 | **Caster** | *cast a session at the server* | Lists Claude Code projects (`claude_<name>.sh` scripts) on the host and starts/stops a detached `screen` session per project with one tap, streaming the launch log. |
 | **Prodder** | *prod a stuck session along* | Lists every `screen` session, lets you peek at its current rendered screen (`hardcopy`) and send input — a line, Enter, or Ctrl-C — without attaching. |
+| **Culler** | *cull what's piled up* | Lists the entries of one configured directory on the host and deletes the tapped one after a confirmation dialog — recursively (`rm -rf`) for directories, plain `rm` for files. |
 
-All three drive the host over short-lived, per-operation SSH connections (no
-pool, no persistent PTY) authenticated with an Ed25519 key. First-run setup is
-the same in each (shared `core-onboarding`): a key is generated on the phone and
-its public key pushed to the host via a one-time password — two-phase, so the
-host-key fingerprint is shown for confirmation *before* the password is sent.
-Each app keeps its own key and onboards independently.
+All four drive the host over short-lived, per-operation SSH connections (no
+pool, no persistent PTY) authenticated with an Ed25519 key. The transport is
+[sshj](https://github.com/hierynomus/sshj); because Android's bundled
+BouncyCastle is stripped of the algorithms sshj needs to load Ed25519 keys, each
+app installs a full `BouncyCastleProvider` at JCE slot 1 on startup
+(`SshSecurity.installBouncyCastle()`). First-run setup is the same in each
+(shared `core-onboarding`): a key is generated on the phone and its public key
+pushed to the host via a one-time password — two-phase, so the host-key
+fingerprint is shown for confirmation *before* the password is sent. Each app
+keeps its own key and onboards independently.
 
 ---
 
@@ -40,22 +47,26 @@ A single multi-module Gradle build:
 ```
 core-data/       SettingsStore (DataStore), KeyVault (AES-256-GCM at rest),
                  ServerProfile, ConfigState
-core-ssh/        app-agnostic SSH primitives: SshKeygen, SshSecurity +
+core-ssh/        app-agnostic SSH primitives (sshj): connectWithKey + runCommand
+                 + streamCommand (SshSession), SshKeygen, SshSecurity +
                  TofuHostKeyVerifier, BcOpenSshKeyProvider, shell/pathQuote,
-                 hostKeyFingerprint, readCapped, LogLine, SshOnboarding
+                 hostKeyFingerprint, readCapped, LogLine + stream batching,
+                 screen-session parsing, SshOnboarding (two-phase)
 core-ui/         AppTheme (Material You), UiText
 core-onboarding/ OnboardingController — shared two-phase key-onboarding flow
 core-testing/    MainDispatcherRule, TESTING_CONVENTIONS (test-only deps)
 
 app-lobber/     ┐
 app-caster/     ├─ one Application + NavHost + ViewModels + app-specific
-app-prodder/    ┘  ssh/ (SshConfig, SshClient interface, SshjClient) per app
+app-prodder/    ├  ssh/ (SshConfig, SshClient interface, SshjClient) per app
+app-culler/     ┘
 ```
 
 The app-shaped SSH bits (`SshConfig`, the `SshClient` interface, `SshjClient`,
-`resolveConfig()`) deliberately live **per app**, not in core — the three differ
-(Prodder has no working dir; each runs different remote commands). `core-ssh`
-holds only what is genuinely app-agnostic.
+`resolveConfig()`) deliberately live **per app**, not in core — the apps differ
+(Prodder has no working dir; each runs different remote commands — install,
+`screen`, `hardcopy`, `rm`). `core-ssh` holds only what is genuinely
+app-agnostic.
 
 ---
 
@@ -74,7 +85,8 @@ which converts AAB→APK with bundletool, signs it with the shared family key, a
 pushes it to the device (USB or Tailscale/LAN endpoint):
 
 ```bash
-~/apk/install-aab.sh ~/apk/Lobber-release.aab   # repeat for Caster / Prodder
+~/apk/install-aab.sh app-lobber/build/outputs/bundle/release/app-lobber-release.aab
+# repeat for app-caster / app-prodder / app-culler
 ```
 
 Add `uninstall` as a second argument to wipe a prior install (data + Keystore)
@@ -135,9 +147,10 @@ Each app versions independently; `versionName` matches its GitHub release tag.
 
 | App | Version |
 |---|---|
-| Lobber | 0.6.1 |
-| Caster | 0.5.1 |
-| Prodder | 0.2.1 |
+| Lobber | 0.7.2 |
+| Caster | 0.6.2 |
+| Prodder | 0.3.2 |
+| Culler | 0.1.0 |
 
 ---
 
