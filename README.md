@@ -5,9 +5,8 @@
 > **cull** what's piled up on it.
 
 sshTools is the merged home of three sibling apps that used to live in separate
-repos ([Lobber](https://github.com/reygnn/Lobber),
-[Caster](https://github.com/reygnn/Caster), Prodder), plus a fourth
-(**Culler**) born here on the same foundation. They share the same SSH
+repos (Lobber, Caster, Prodder — now emptied redirects pointing here), plus a
+fourth (**Culler**) born here on the same foundation. They share the same SSH
 transport, crypto, persistence and test conventions — so they share **code**
 through a set of `core-*` Gradle modules, while still shipping as independent
 apps.
