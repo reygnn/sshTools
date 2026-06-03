@@ -152,6 +152,14 @@ render it. Each SSH operation opens, authenticates, runs, tears down.
 The Gradle wrapper (9.5.1) is bundled. Signing happens host-side in
 `install-aab.sh` with the family key — never in Gradle (see `~/.claude/CLAUDE.md`).
 
+The host-side installer lives in this repo at **`host-scripts/install-aab.sh`**
+(it moved here when the standalone Lobber repo was merged into sshTools);
+`~/apk/install-aab.sh` is a symlink to it. It reads the family key from
+`~/.familyKey/keystore.properties` and matches the target device over USB,
+Tailscale-IP and LAN/wireless debugging (each endpoint capped with a short
+timeout). It is a host tool, German-language by history — the
+`checkGermanComments` linter only scans `*.kt`/`*.kts`, so it is out of scope.
+
 ---
 
 ## Test conventions
