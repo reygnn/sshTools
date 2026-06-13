@@ -4,6 +4,14 @@ import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.ssh.LogLine
 import com.github.reygnn.core.ssh.SshConnectionParams
 import kotlinx.coroutines.flow.Flow
+import java.io.IOException
+
+/**
+ * The host has no `screen` binary, so the detached update can't be launched.
+ * Thrown by [SshClient.startUpdate] so the UI can show an actionable message
+ * instead of spinning forever on a log that never appears.
+ */
+class ScreenMissingException : IOException("screen is not installed on the host")
 
 /** Patcher: no workingDir — an `apt` update runs system-wide, not in a build dir. */
 data class SshConfig(
@@ -57,6 +65,9 @@ interface SshClient {
      * Launch `apt-get update && apt-get full-upgrade` in a detached `screen`
      * session, logging to the fixed log file. A no-op if an update session is
      * already running (so it can't start a second apt over the first).
+     *
+     * @throws ScreenMissingException if the host has no `screen` binary — without
+     * which the launch would silently fail and the log stream would never produce.
      */
     suspend fun startUpdate()
 

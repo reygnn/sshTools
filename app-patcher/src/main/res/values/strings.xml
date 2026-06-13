@@ -18,6 +18,7 @@
     <string name="error_key_required">Paste the SSH key first.</string>
     <string name="error_invalid_port">Port must be between 1 and 65535.</string>
     <string name="error_reboot_failed">Could not reach the host to reboot it.</string>
+    <string name="error_screen_missing">\'screen\' is not installed on the host. Install it with: sudo apt-get install -y screen</string>
 
     <!-- Server profiles (server-name/host/port/user/key labels come from core-ui) -->
     <string name="settings_servers">Servers</string>

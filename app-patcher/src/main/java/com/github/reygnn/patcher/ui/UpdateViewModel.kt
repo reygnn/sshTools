@@ -3,6 +3,7 @@ package com.github.reygnn.patcher.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.reygnn.patcher.R
+import com.github.reygnn.patcher.ssh.ScreenMissingException
 import com.github.reygnn.patcher.ssh.SshClient
 import com.github.reygnn.patcher.ssh.SshConfig
 import com.github.reygnn.patcher.ssh.SshjClient
@@ -127,7 +128,12 @@ class UpdateViewModel(
             _state.update { it.copy(phase = UpdatePhase.Running, error = null, info = null, aptExitCode = null) }
             runCatching { createClient(config).startUpdate() }
                 .onFailure { e ->
-                    _state.update { it.copy(phase = UpdatePhase.Idle, error = e.toUiText()) }
+                    val msg = if (e is ScreenMissingException) {
+                        UiText.Resource(R.string.error_screen_missing)
+                    } else {
+                        e.toUiText()
+                    }
+                    _state.update { it.copy(phase = UpdatePhase.Idle, error = msg) }
                     return@launch
                 }
             startWatching()

@@ -5,6 +5,7 @@ import com.github.reygnn.core.testing.MainDispatcherRule
 import com.github.reygnn.core.data.ServerProfile
 import com.github.reygnn.core.data.SettingsStore
 import com.github.reygnn.core.ssh.LogLine
+import com.github.reygnn.patcher.ssh.ScreenMissingException
 import com.github.reygnn.patcher.ssh.SshClient
 import com.github.reygnn.patcher.ssh.UpdateStatus
 import io.mockk.coEvery
@@ -95,6 +96,23 @@ class UpdateViewModelTest {
                 assertTrue(final.log.any { it is LogLine.Stdout })
             }
             coVerify(exactly = 1) { client.startUpdate() }
+        }
+
+    @Test
+    fun `startUpdate surfaces a clear error and stays idle when screen is missing`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            coEvery { client.startUpdate() } throws ScreenMissingException()
+
+            vm.state.test {
+                awaitItem()
+                vm.startUpdate()
+                val final = expectMostRecentItem()
+                assertEquals(UpdatePhase.Idle, final.phase)
+                assertFalse(final.watching)
+                assertNotNull(final.error)
+            }
+            // It must not proceed to stream a log that would never appear.
+            coVerify(exactly = 0) { client.streamLog() }
         }
 
     @Test

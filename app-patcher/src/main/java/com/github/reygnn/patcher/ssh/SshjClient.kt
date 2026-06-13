@@ -44,12 +44,18 @@ private const val UPDATE_PAYLOAD =
         "-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold full-upgrade; " +
         "echo \"$DONE_MARKER rc=\$?\"; } > $LOG 2>&1"
 
+/** Exit code [launchCmd] uses to signal "no `screen` binary on the host". */
+private const val NO_SCREEN_EXIT = 97
+
 /**
  * Launch the detached update — but only if no update session is already alive,
- * so a second tap can't start a second apt over the first.
+ * so a second tap can't start a second apt over the first. Bails out with
+ * [NO_SCREEN_EXIT] first when `screen` is missing, so [SshjClient.startUpdate]
+ * can report it instead of streaming a log that never gets written.
  */
 private val launchCmd: String =
-    "screen -ls 2>/dev/null | grep -Eq '\\.$SESSION[[:space:]]' || " +
+    "command -v screen >/dev/null 2>&1 || exit $NO_SCREEN_EXIT; " +
+        "screen -ls 2>/dev/null | grep -Eq '\\.$SESSION[[:space:]]' || " +
         "screen -dmS $SESSION bash -lc " + shellQuote(UPDATE_PAYLOAD)
 
 /**
@@ -116,7 +122,10 @@ class SshjClient(
     }
 
     override suspend fun startUpdate(): Unit = withContext(Dispatchers.IO) {
-        connect().use { ssh -> ssh.runCommand(launchCmd) }
+        connect().use { ssh ->
+            val (exit, _, _) = ssh.runCommand(launchCmd)
+            if (exit == NO_SCREEN_EXIT) throw ScreenMissingException()
+        }
     }
 
     override fun streamLog(): Flow<LogLine> =
