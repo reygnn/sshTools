@@ -38,16 +38,24 @@ pushed to the host via a one-time password — two-phase, so the host-key
 fingerprint is shown for confirmation *before* the password is sent. Each app
 keeps its own key and onboards independently.
 
-**Patcher host requirement.** Patcher runs `apt-get` and `reboot` through `sudo`
-and never prompts for a password, so the SSH user needs passwordless sudo scoped
-to exactly those two commands, e.g. in `/etc/sudoers.d/patcher`:
+**Patcher host requirements.**
 
-```
-<user> ALL=(root) NOPASSWD: /usr/bin/apt-get, /usr/sbin/reboot
-```
+1. **`screen` must be installed** (`sudo apt-get install -y screen`) — the update
+   runs in a detached `screen` session. Without it the launch silently fails and
+   the app just spins with no log output.
+2. **Passwordless sudo with `SETENV:`**, scoped to `apt-get`/`reboot`, in e.g.
+   `/etc/sudoers.d/patcher`:
 
-(`DEBIAN_FRONTEND=noninteractive` plus `--force-conf{def,old}` are passed by the
-app so the upgrade never blocks on a debconf prompt.)
+   ```
+   <user> ALL=(root) NOPASSWD: SETENV: /usr/bin/apt-get, /usr/sbin/reboot
+   ```
+
+   The `SETENV:` tag is required: the app passes `DEBIAN_FRONTEND=noninteractive`
+   (plus `--force-conf{def,old}`) so the upgrade never blocks on a debconf prompt,
+   and without `SETENV:` sudo refuses that env var ("sorry, you are not allowed to
+   set the following environment variables: DEBIAN_FRONTEND"). Validate with
+   `sudo visudo -c`. (`reboot` may live at `/sbin/reboot` on some systems — adjust
+   the path to match.)
 
 ---
 
