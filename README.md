@@ -1,8 +1,8 @@
 # sshTools
 
-> Four small Android remotes for one trusted build host — **lob** a build at
+> Five small Android remotes for one trusted build host — **lob** a build at
 > your phone, **cast** a session at the server, **prod** a stuck session along,
-> **cull** what's piled up on it.
+> **cull** what's piled up on it, **patch** your boxes.
 
 sshTools is the merged home of three sibling apps that used to live in separate
 repos (Lobber, Caster, Prodder — now emptied redirects pointing here), plus two
