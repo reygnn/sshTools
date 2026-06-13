@@ -27,4 +27,12 @@ interface SshClient {
     fun startStreaming(project: String): Flow<LogLine>
     suspend fun stopSession(project: String): Boolean
     suspend fun isSessionRunning(project: String): Boolean
+
+    /**
+     * Runs the host's `gen-project-scripts.sh`, which (re)generates the
+     * `claude_*.sh` launch scripts this app lists. Streams its output the same
+     * way as [startStreaming]. The script lives at a fixed host location,
+     * independent of the per-profile working dir.
+     */
+    fun generateProjectScripts(): Flow<LogLine>
 }

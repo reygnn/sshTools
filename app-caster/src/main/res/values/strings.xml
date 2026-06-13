@@ -36,6 +36,8 @@
 
     <!-- Launcher screen -->
     <string name="refresh_projects">Reload project list</string>
+    <string name="generate_scripts">Generate project scripts</string>
+    <string name="generating_scripts">Generating project scripts…</string>
     <string name="open_settings">Open settings</string>
     <string name="no_projects_found">No claude_*.sh scripts found in the working dir.</string>
     <string name="launching_project">Starting %1$s</string>

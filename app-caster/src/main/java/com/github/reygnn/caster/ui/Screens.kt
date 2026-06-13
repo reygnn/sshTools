@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -71,6 +72,16 @@ fun LauncherScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.launcher_title, versionName)) },
                 actions = {
+                    // Hidden while a launch/generation stream owns the screen, so it
+                    // can't kick off a second job over the running one.
+                    if (state.launching == null) {
+                        IconButton(onClick = viewModel::generateScripts) {
+                            Icon(
+                                Icons.Default.Build,
+                                contentDescription = stringResource(R.string.generate_scripts),
+                            )
+                        }
+                    }
                     IconButton(onClick = viewModel::loadProjects) {
                         Icon(
                             Icons.Default.Refresh,
@@ -100,7 +111,11 @@ fun LauncherScreen(
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 when {
                     state.launching != null -> LaunchProgress(
-                        project = state.launching!!,
+                        title = if (state.generating) {
+                            stringResource(R.string.generating_scripts)
+                        } else {
+                            stringResource(R.string.launching_project, state.launching!!)
+                        },
                         log = state.log,
                         finished = state.launchFinished,
                         exitCode = state.lastExitCode,
@@ -196,7 +211,7 @@ private fun ProjectRow(
 
 @Composable
 private fun LaunchProgress(
-    project: String,
+    title: String,
     log: List<LogLine>,
     finished: Boolean,
     exitCode: Int?,
@@ -205,7 +220,7 @@ private fun LaunchProgress(
 ) {
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text(
-            stringResource(R.string.launching_project, project),
+            title,
             style = MaterialTheme.typography.titleMedium,
         )
         Spacer(Modifier.size(12.dp))

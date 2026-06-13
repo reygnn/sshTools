@@ -13,6 +13,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -332,6 +333,58 @@ class LaunchViewModelTest {
                 assertEquals(refreshed, final.projects)
             }
             coVerify(exactly = 1) { client.listProjects() }
+        }
+
+    @Test
+    fun `generateScripts streams output under the generating flag`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            every { client.generateProjectScripts() } returns flow {
+                emit(LogLine.Stdout("Generated claude_alpha.sh"))
+                emit(LogLine.ExitCode(0))
+            }
+
+            vm.state.test {
+                awaitItem()
+                vm.generateScripts()
+
+                val final = expectMostRecentItem()
+                assertTrue(final.generating)
+                // launching is a non-null marker so the "something is running" guards apply.
+                assertTrue(final.launching != null)
+                assertEquals(0, final.lastExitCode)
+                assertTrue(final.launchFinished)
+            }
+        }
+
+    @Test
+    fun `generateScripts is ignored while a launch is running`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            coEvery { client.isSessionRunning("alpha") } returns false
+            // A launch stream that never finishes keeps launching != null.
+            every { client.startStreaming("alpha") } returns MutableSharedFlow(replay = 1)
+
+            vm.launch("alpha")
+            vm.state.test {
+                while (awaitItem().launching == null) { /* wait until streaming */ }
+                vm.generateScripts()
+                cancelAndIgnoreRemainingEvents()
+            }
+            verify(exactly = 0) { client.generateProjectScripts() }
+        }
+
+    @Test
+    fun `generateScripts sets configured false when no config`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            coEvery { settings.readKeyPem() } returns null
+            val vmNoConfig = LaunchViewModel(settings = settings, createClient = { client })
+
+            vmNoConfig.generateScripts()
+
+            vmNoConfig.state.test {
+                val final = expectMostRecentItem()
+                assertFalse(final.configured)
+            }
+            verify(exactly = 0) { client.generateProjectScripts() }
         }
 
     @Test

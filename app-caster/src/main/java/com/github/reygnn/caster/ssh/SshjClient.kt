@@ -56,6 +56,15 @@ class SshjClient(
         return streamCommand({ connect(readTimeoutMs = 0) }, full)
     }
 
+    override fun generateProjectScripts(): Flow<LogLine> {
+        // gen-project-scripts.sh lives at a fixed host location (not the
+        // per-profile workingDir) and regenerates the claude_*.sh launch scripts.
+        // readTimeoutMs = 0 for the same reason as startStreaming: generation can
+        // be silent for a while; recovery is via user cancel, not a socket timeout.
+        val full = "cd ${pathQuote(GEN_SCRIPTS_DIR)} && ./gen-project-scripts.sh"
+        return streamCommand({ connect(readTimeoutMs = 0) }, full)
+    }
+
     override suspend fun stopSession(project: String): Boolean = withContext(Dispatchers.IO) {
         require(isValidProjectName(project))
         connect().use { ssh -> val (exit, _, _) = ssh.runCommand("screen -S ${shellQuote("claude_$project")} -X quit"); exit == 0 }
@@ -72,6 +81,9 @@ class SshjClient(
         }
     }
 }
+
+/** Fixed host location of `gen-project-scripts.sh` (see [SshjClient.generateProjectScripts]). */
+internal const val GEN_SCRIPTS_DIR = "/home/user/proj"
 
 internal fun scriptNameToProject(fileName: String): String? {
     if (!fileName.startsWith("claude_") || !fileName.endsWith(".sh")) return null
