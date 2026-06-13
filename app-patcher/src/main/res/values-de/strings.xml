@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Patcher</string>
+
+    <!-- TopAppBar titles -->
+    <string name="settings_title">Einstellungen</string>
+    <string name="update_title">Patcher %1$s</string>
+
+    <!-- Common actions -->
+    <string name="back">Zurück</string>
+    <string name="saving">Speichern…</string>
+    <string name="done">Fertig</string>
+    <string name="cancel">Abbrechen</string>
+
+    <!-- ViewModel-emitted errors -->
+    <string name="error_fill_all_fields">Bitte alle Felder ausfüllen</string>
+    <string name="error_need_server">Mindestens einen Server hinzufügen.</string>
+    <string name="error_key_required">Zuerst den SSH-Key einfügen.</string>
+    <string name="error_invalid_port">Port muss zwischen 1 und 65535 liegen.</string>
+    <string name="error_reboot_failed">Host für den Neustart nicht erreichbar.</string>
+
+    <!-- Server profiles (server-name/host/port/user/key labels come from core-ui) -->
+    <string name="settings_servers">Server</string>
+    <string name="settings_key">SSH-Schlüssel (für alle Server)</string>
+    <string name="add_server">Server hinzufügen</string>
+
+    <!-- Update screen -->
+    <string name="refresh_status">Update-Status neu prüfen</string>
+    <string name="open_settings">Einstellungen öffnen</string>
+    <string name="update_idle">Auf diesem Host läuft gerade kein Update.</string>
+    <string name="update_running_detached">Auf diesem Host läuft ein Update. Es läuft weiter, auch wenn du die App schließt.</string>
+    <string name="updating">Aktualisiere…</string>
+    <string name="start_update">Update starten</string>
+    <string name="update_again">Erneut aktualisieren</string>
+    <string name="stop_watching">Nicht mehr mitlesen</string>
+    <string name="resume_watching">Wieder mitlesen</string>
+    <string name="update_succeeded">Update erfolgreich abgeschlossen.</string>
+    <string name="update_failed">apt fehlgeschlagen (Exit %1$s).</string>
+
+    <!-- Reboot -->
+    <string name="reboot_required">Ein Neustart ist erforderlich.</string>
+    <string name="reboot_packages">Ausgelöst durch: %1$s</string>
+    <string name="reboot_now">Jetzt neu starten</string>
+    <string name="rebooting">Starte neu…</string>
+    <string name="reboot_confirm_title">Host neu starten?</string>
+    <string name="reboot_confirm_body">%1$s jetzt neu starten? Laufende Sessions auf dem Host werden beendet.</string>
+    <string name="reboot_dispatched">Neustart ausgelöst — der Host fährt herunter.</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Patcher einrichten</string>
+    <string name="onboarding_intro">Patcher erzeugt einen Schlüssel auf dem Telefon und überträgt den öffentlichen Schlüssel auf den Host. Dafür brauchst du nur einmal Benutzername und Passwort.</string>
+    <string name="onboarding_start">Auto-Einrichtung starten</string>
+    <string name="onboarding_running">Läuft…</string>
+    <string name="onboarding_have_key">Ich habe bereits einen Schlüssel</string>
+    <string name="field_host">Host</string>
+    <string name="field_port">Port</string>
+    <string name="field_user">Benutzername</string>
+    <string name="field_password_once">Passwort (einmalig)</string>
+
+    <!-- Onboarding step labels -->
+    <string name="step_generating">Erzeuge Ed25519-Schlüssel…</string>
+    <string name="step_discovering">Lese Host-Key…</string>
+    <string name="step_awaiting_confirm">Warte auf Host-Key-Bestätigung…</string>
+    <string name="step_pushing">Übertrage öffentlichen Schlüssel auf den Host…</string>
+    <string name="step_verifying">Prüfe Public-Key-Login…</string>
+    <string name="step_saving">Speichere Konfiguration…</string>
+    <string name="step_done">Fertig</string>
+</resources>

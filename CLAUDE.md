@@ -1,8 +1,8 @@
 # CLAUDE.md
 
-Project conventions for **sshTools** — three SSH build-host tools
-(**Lobber**, **Caster**, **Prodder**) merged into one Gradle build that
-shares a set of `core-*` modules. Claude Code reads this file automatically
+Project conventions for **sshTools** — five SSH build-host tools
+(**Lobber**, **Caster**, **Prodder**, **Culler**, **Patcher**) merged into one
+Gradle build that shares a set of `core-*` modules. Claude Code reads this file automatically
 at session start. Keep it short and actionable — not a marketing
 description (that's `README.md`).
 
@@ -18,7 +18,7 @@ file only holds what is specific to sshTools.
 
 ## Scope
 
-Three separate apps for driving a build host over SSH, each shipping as its
+Five separate apps for driving a build/remote host over SSH, each shipping as its
 own APK/AAB (own `applicationId`, `versionCode`/`versionName`):
 
 - **Lobber** (`app-lobber`) — remote AAB installer. Streams
@@ -28,8 +28,15 @@ own APK/AAB (own `applicationId`, `versionCode`/`versionName`):
 - **Prodder** (`app-prodder`) — session prodder. Attaches to running
   `screen` sessions, captures their content (`hardcopy`) and sends input
   (`stuff`).
+- **Culler** (`app-culler`) — directory culler. Lists one configured directory
+  and deletes the tapped entry after a confirmation dialog (`rm`/`rm -rf`).
+- **Patcher** (`app-patcher`) — VPS updater. Runs `apt-get update &&
+  full-upgrade` on a Debian/Ubuntu host inside a detached `screen` session
+  (so a dropped connection can't abort dpkg), streams the log, and offers a
+  confirmed reboot when `/var/run/reboot-required` is set. No `workingDir`;
+  needs passwordless `sudo` scoped to `apt-get`/`reboot` on the host.
 
-All three onboard a fresh SSH key the same way (key generated on device, public
+All five onboard a fresh SSH key the same way (key generated on device, public
 key pushed to the host by one-time password) via the shared `core-onboarding`
 module — each app keeps its own key (Hard Rule 4), so they onboard independently.
 
@@ -45,7 +52,7 @@ built-in Kotlin, JUnit 4 + MockK + Turbine):
 
 - **Multi-module by design.** Five `core-*` libraries
   (`core-data`, `core-ssh`, `core-ui`, `core-onboarding`, `core-testing`) plus
-  three app modules. The split is justified *only* because three apps share the
+  five app modules. The split is justified *only* because the apps share the
   SSH, crypto, persistence and onboarding stack — it is the exception to the
   "single `:app` module" baseline, not a pattern to copy.
 - **SSH:** sshj 0.40 + BouncyCastle 1.84 (`bcprov`/`bcpkix-jdk18on`),
@@ -92,8 +99,9 @@ render it. Each SSH operation opens, authenticates, runs, tears down.
 1. **`core-ssh` holds only app-agnostic primitives.** Anything app-shaped —
    `SshConfig`, the `SshClient` interface, `SshjClient`, `resolveConfig()` —
    lives in each app's own `ssh/` package, **not** in core. The apps differ:
-   Prodder's `SshConfig` has no `workingDir`; Lobber's client installs AABs;
-   Caster's runs `screen`. Don't hoist these into core to "share" them.
+   Prodder's and Patcher's `SshConfig` have no `workingDir`; Lobber's client
+   installs AABs; Caster's runs `screen`; Patcher's runs `apt-get` in a detached
+   `screen`. Don't hoist these into core to "share" them.
 
 2. **`SshClient` is an interface, always.** ViewModels take a
    `createClient: (SshConfig) -> SshClient` factory (default `::SshjClient`)
@@ -116,7 +124,7 @@ render it. Each SSH operation opens, authenticates, runs, tears down.
 4. **One SSH keypair per app, encrypted at rest.** `filesDir/id_ed25519`
    holds Base64 of an AES-256-GCM ciphertext from `KeyVault` (non-exportable
    Android-Keystore key), mode `0600`. The DataStore name and Keystore alias
-   (`ssh_tools_key_vault`) are the *same string* in all three apps, but this is
+   (`ssh_tools_key_vault`) are the *same string* in all five apps, but this is
    **shared code, not shared data**: each app has its own sandbox, so each holds
    its own key/config and onboards independently (Keystore keys are UID-bound —
    they can't cross app boundaries). Within one app, all server profiles share

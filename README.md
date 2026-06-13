@@ -5,11 +5,11 @@
 > **cull** what's piled up on it.
 
 sshTools is the merged home of three sibling apps that used to live in separate
-repos (Lobber, Caster, Prodder — now emptied redirects pointing here), plus a
-fourth (**Culler**) born here on the same foundation. They share the same SSH
-transport, crypto, persistence and test conventions — so they share **code**
-through a set of `core-*` Gradle modules, while still shipping as independent
-apps.
+repos (Lobber, Caster, Prodder — now emptied redirects pointing here), plus two
+more (**Culler** and **Patcher**) born here on the same foundation. They share
+the same SSH transport, crypto, persistence and test conventions — so they share
+**code** through a set of `core-*` Gradle modules, while still shipping as
+independent apps.
 
 Each app is a thin, single-purpose remote for a **known build host** reachable
 on the LAN or over a **Tailscale tailnet**. None of them is a generic SSH client
@@ -25,8 +25,9 @@ or meant for raw exposure on the open internet (see [Security](#security)).
 | **Caster** | *cast a session at the server* | Lists Claude Code projects (`claude_<name>.sh` scripts) on the host and starts/stops a detached `screen` session per project with one tap, streaming the launch log. |
 | **Prodder** | *prod a stuck session along* | Lists every `screen` session, lets you peek at its current rendered screen (`hardcopy`) and send input — a line, Enter, or Ctrl-C — without attaching. |
 | **Culler** | *cull what's piled up* | Lists the entries of one configured directory on the host and deletes the tapped one after a confirmation dialog — recursively (`rm -rf`) for directories, plain `rm` for files. |
+| **Patcher** | *patch your boxes* | Runs `apt-get update && full-upgrade` on a Debian/Ubuntu host inside a detached `screen` session (so a dropped phone connection never aborts dpkg), streams the live log, and — when the host flags `/var/run/reboot-required` — offers a confirmed reboot. |
 
-All four drive the host over short-lived, per-operation SSH connections (no
+All five drive the host over short-lived, per-operation SSH connections (no
 pool, no persistent PTY) authenticated with an Ed25519 key. The transport is
 [sshj](https://github.com/hierynomus/sshj); because Android's bundled
 BouncyCastle is stripped of the algorithms sshj needs to load Ed25519 keys, each
@@ -36,6 +37,17 @@ app installs a full `BouncyCastleProvider` at JCE slot 1 on startup
 pushed to the host via a one-time password — two-phase, so the host-key
 fingerprint is shown for confirmation *before* the password is sent. Each app
 keeps its own key and onboards independently.
+
+**Patcher host requirement.** Patcher runs `apt-get` and `reboot` through `sudo`
+and never prompts for a password, so the SSH user needs passwordless sudo scoped
+to exactly those two commands, e.g. in `/etc/sudoers.d/patcher`:
+
+```
+<user> ALL=(root) NOPASSWD: /usr/bin/apt-get, /usr/sbin/reboot
+```
+
+(`DEBIAN_FRONTEND=noninteractive` plus `--force-conf{def,old}` are passed by the
+app so the upgrade never blocks on a debconf prompt.)
 
 ---
 
@@ -58,14 +70,15 @@ core-testing/    MainDispatcherRule, TESTING_CONVENTIONS (test-only deps)
 app-lobber/     ┐
 app-caster/     ├─ one Application + NavHost + ViewModels + app-specific
 app-prodder/    ├  ssh/ (SshConfig, SshClient interface, SshjClient) per app
-app-culler/     ┘
+app-culler/     │
+app-patcher/    ┘
 ```
 
 The app-shaped SSH bits (`SshConfig`, the `SshClient` interface, `SshjClient`,
 `resolveConfig()`) deliberately live **per app**, not in core — the apps differ
-(Prodder has no working dir; each runs different remote commands — install,
-`screen`, `hardcopy`, `rm`). `core-ssh` holds only what is genuinely
-app-agnostic.
+(Prodder and Patcher have no working dir; each runs different remote commands —
+install, `screen`, `hardcopy`, `rm`, `apt-get`). `core-ssh` holds only what is
+genuinely app-agnostic.
 
 ---
 
@@ -85,7 +98,7 @@ pushes it to the device (USB or Tailscale/LAN endpoint):
 
 ```bash
 ~/apk/install-aab.sh app-lobber/build/outputs/bundle/release/app-lobber-release.aab
-# repeat for app-caster / app-prodder / app-culler
+# repeat for app-caster / app-prodder / app-culler / app-patcher
 ```
 
 Add `uninstall` as a second argument to wipe a prior install (data + Keystore)
@@ -150,6 +163,7 @@ Each app versions independently; `versionName` matches its GitHub release tag.
 | Caster | 0.6.2 |
 | Prodder | 0.3.2 |
 | Culler | 0.1.0 |
+| Patcher | 0.1.0 |
 
 ---
 
