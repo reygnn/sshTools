@@ -72,6 +72,12 @@ fun LauncherScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.launcher_title, versionName)) },
                 actions = {
+                    IconButton(onClick = viewModel::loadProjects) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = stringResource(R.string.refresh_projects),
+                        )
+                    }
                     // Hidden while a launch/generation stream owns the screen, so it
                     // can't kick off a second job over the running one.
                     if (state.launching == null) {
@@ -81,12 +87,6 @@ fun LauncherScreen(
                                 contentDescription = stringResource(R.string.generate_scripts),
                             )
                         }
-                    }
-                    IconButton(onClick = viewModel::loadProjects) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = stringResource(R.string.refresh_projects),
-                        )
                     }
                     IconButton(onClick = onOpenSettings) {
                         Icon(
